@@ -68,7 +68,7 @@ public class Sistema {
 	}
 
 	public enum Interrupts {               // possiveis interrupcoes que esta CPU gera
-		noInterrupt, intEnderecoInvalido, intInstrucaoInvalida, intOverflow, intSTOP;
+		noInterrupt, intEnderecoInvalido, intInstrucaoInvalida, intOverflow, intSTOP, intRegistradorInvalido;
 	}
 
 	public class CPU {
@@ -100,10 +100,28 @@ public class Sistema {
 			ih = _ih;               // aponta para rotinas de tratamento de int
             sysCall = _sysCall;     // aponta para rotinas de tratamento de chamadas de sistema
 			debug =  _debug;        // se true, print da instrucao em execucao
+
+			base = 0;				//limite inferior da memória
+			limite = _mem.tamMem;	//limite superior da memória
 		}
 		
+		//teste de memória (in)válida
 		private boolean legal(int e) {                             // todo acesso a memoria tem que ser verificado
-			// ????
+			//e fora dos limites permitidos de memória
+			if (e< this.base || e>= this.limite) {
+				irpt = Interrupts.intEnderecoInvalido;
+				return false;
+			}
+			return true;
+		}
+
+		//teste de registrador (in)válido
+		private boolean testaReg(int reg){
+			//se o registrador for invalido
+			if (reg < 0 || reg >= 10) {
+				irpt = Interrupts.intRegistradorInvalido;
+				return false;
+			}
 			return true;
 		}
 
@@ -135,25 +153,38 @@ public class Sistema {
 
 					// Instrucoes de Busca e Armazenamento em Memoria
 					    case LDI: // Rd ← k
+							//testa se o r1 é válido
+							if(!(testaReg(ir.r1))){ break;	}
 							reg[ir.r1] = ir.p;
 							pc++;
 							break;
 
 						case LDD: // Rd <- [A]
+							//testa se a pos de mem é válida
 						    if (legal(ir.p)) {
+								//se for valida, testa se o r1 é valido
+								if(!(testaReg(ir.r1))){ break;	}
 							   reg[ir.r1] = m[ir.p].p;
 							   pc++;
 						    }
 						    break;
 
 						case LDX: // RD <- [RS] // NOVA
+							//testa se o r2 é válido
+							if(!(testaReg(ir.r2))){ break;	}
+							//se o r2 for válido, testa se a posição de memoria é válida
 							if (legal(reg[ir.r2])) {
+								//se a posição de memoria for válida, testa se o r1 é valido
+								if(!(testaReg(ir.r1))){ break;	}
 								reg[ir.r1] = m[reg[ir.r2]].p;
 								pc++;
 							}
 							break;
 
 						case STD: // [A] ← Rs
+							//testa se o r1 é valido
+							if(!(testaReg(ir.r1))){ break;	}
+							//se for, testa se a pos mem é valida
 						    if (legal(ir.p)) {
 							    m[ir.p].opc = Opcode.DATA;
 							    m[ir.p].p = reg[ir.r1];
@@ -162,44 +193,65 @@ public class Sistema {
 						    break;
 
 						case STX: // [Rd] ←Rs
+							//testa se r1 é válido
+							if(!(testaReg(ir.r1))){ break;	}
+							//se for, testa se a pos mem é válida
 						    if (legal(reg[ir.r1])) {
-							    m[reg[ir.r1]].opc = Opcode.DATA;      
+							    m[reg[ir.r1]].opc = Opcode.DATA;     
+								//se for, testa se o r2 é valido
+								if(!(testaReg(ir.r2))){ break;	} 
 							    m[reg[ir.r1]].p = reg[ir.r2];          
 								pc++;
 							};
 							break;
 						
 						case MOVE: // RD <- RS
+							//testa se os registradores r1 e r2 são validos
+							if(!(testaReg(ir.r1))){ break;	}
+							if(!(testaReg(ir.r2))){ break;	}
 							reg[ir.r1] = reg[ir.r2];
 							pc++;
 							break;	
 							
 					// Instrucoes Aritmeticas
 						case ADD: // Rd ← Rd + Rs
+							//testa se r1 e r2 são válidos
+							if(!testaReg(ir.r1)){break;}
+							if(!testaReg(ir.r2)){break;}
 							reg[ir.r1] = reg[ir.r1] + reg[ir.r2];
 							testOverflow(reg[ir.r1]);
 							pc++;
 							break;
 
 						case ADDI: // Rd ← Rd + k
+							//testa se r1 é válido
+							if(!testaReg(ir.r1)){break;}
 							reg[ir.r1] = reg[ir.r1] + ir.p;
 							testOverflow(reg[ir.r1]);
 							pc++;
 							break;
 
 						case SUB: // Rd ← Rd - Rs
+							//testa se r1 e r2 são válidos
+							if(!testaReg(ir.r1)){break;}
+							if(!testaReg(ir.r2)){break;}
 							reg[ir.r1] = reg[ir.r1] - reg[ir.r2];
 							testOverflow(reg[ir.r1]);
 							pc++;
 							break;
 
 						case SUBI: // RD <- RD - k // NOVA
+							//testa se r1 é válido
+							if(!testaReg(ir.r1)){break;}
 							reg[ir.r1] = reg[ir.r1] - ir.p;
 							testOverflow(reg[ir.r1]);
 							pc++;
 							break;
 
 						case MULT: // Rd <- Rd * Rs
+							//testa se r1 e r2 são válidos
+							if(!testaReg(ir.r1)){break;}
+							if(!testaReg(ir.r2)){break;}
 							reg[ir.r1] = reg[ir.r1] * reg[ir.r2];  
 							testOverflow(reg[ir.r1]);
 							pc++;
@@ -207,10 +259,15 @@ public class Sistema {
 
 					// Instrucoes JUMP
 						case JMP: // PC <- k
+							//testa se k é endereço de memória válido
+							if(!legal(ir.p)){break;}
 							pc = ir.p;
 							break;
 						
 						case JMPIG: // If Rc > 0 Then PC ← Rs Else PC ← PC +1
+							//testa se r1 e r2 são válidos
+							if( !testaReg(ir.r1) ) {break;}
+							if( !testaReg(ir.r2) ) {break;}
 							if (reg[ir.r2] > 0) {
 								pc = reg[ir.r1];
 							} else {
@@ -219,6 +276,10 @@ public class Sistema {
 							break;
 
 						case JMPIGK: // If RC > 0 then PC <- k else PC++
+							//testa se r2 é válido
+							if( !testaReg(ir.r2) ) {break;}
+							//testa se o endereço de memoria é válido
+							if( !legal(ir.p)) {break;}
 							if (reg[ir.r2] > 0) {
 								pc = ir.p;
 							} else {
@@ -227,6 +288,10 @@ public class Sistema {
 							break;
 	
 						case JMPILK: // If RC < 0 then PC <- k else PC++
+							//testa se r2 é válido
+							if( !testaReg(ir.r2) ) {break;}
+							//testa se o endereço é valido
+							if(!legal(ir.p)){break;}
 							 if (reg[ir.r2] < 0) {
 								pc = ir.p;
 							} else {
@@ -235,6 +300,10 @@ public class Sistema {
 							break;
 	
 						case JMPIEK: // If RC = 0 then PC <- k else PC++
+								//testa se o r2 é valido
+								if( !testaReg(ir.r2) ) {break;}
+								//testa se endereço é válido
+								if(!legal(ir.p)){break;}
 								if (reg[ir.r2] == 0) {
 									pc = ir.p;
 								} else {
@@ -244,6 +313,9 @@ public class Sistema {
 	
 	
 						case JMPIL: // if Rc < 0 then PC <- Rs Else PC <- PC +1
+								//testa se r1 e r2 são válidos
+								if( !testaReg(ir.r2) ) {break;}
+								if( !testaReg(ir.r1) ) {break;}
 								 if (reg[ir.r2] < 0) {
 									pc = reg[ir.r1];
 								} else {
@@ -252,6 +324,9 @@ public class Sistema {
 							break;
 		
 						case JMPIE: // If Rc = 0 Then PC <- Rs Else PC <- PC +1
+								//testa se r1 e r2 são válidos
+								if( !testaReg(ir.r2) ) {break;}
+								if( !testaReg(ir.r1) ) {break;}
 								 if (reg[ir.r2] == 0) {
 									pc = reg[ir.r1];
 								} else {
@@ -260,10 +335,16 @@ public class Sistema {
 							break; 
 	
 						case JMPIM: // PC <- [A]
-								 pc = m[ir.p].p;
-							 break; 
+							//testa se endereço é válido
+							if(!legal(ir.p)){break;}
+							pc = m[ir.p].p;
+							break; 
 	
 						case JMPIGM: // If RC > 0 then PC <- [A] else PC++
+								//testa se r2 é válido
+								if( !testaReg(ir.r2) ) {break;}
+								//testa se ´posição de memória é válida
+								if(!legal(ir.p)){break;}
 								 if (reg[ir.r2] > 0) {
 									pc = m[ir.p].p;
 								} else {
@@ -272,6 +353,10 @@ public class Sistema {
 							 break;  
 	
 						case JMPILM: // If RC < 0 then PC <- k else PC++
+								//testa se r2 é válido
+								if( !testaReg(ir.r2) ) {break;}
+								//testa se posição de memória é válida
+								if(!legal(ir.p)){break;}
 								 if (reg[ir.r2] < 0) {
 									pc = m[ir.p].p;
 								} else {
@@ -280,6 +365,9 @@ public class Sistema {
 							 break; 
 	
 						case JMPIEM: // If RC = 0 then PC <- k else PC++
+								//testa se r2 é valido
+								if( !testaReg(ir.r2) ) {break;}
+								if(!legal(ir.p)){break;}
 								if (reg[ir.r2] == 0) {
 									pc = m[ir.p].p;
 								} else {
@@ -288,6 +376,9 @@ public class Sistema {
 							 break; 
 	
 						case JMPIGT: // If RS>RC then PC <- k else PC++
+								//testa se r1 e r2 são válidos
+								if( !testaReg(ir.r1) ) {break;}
+								if( !testaReg(ir.r2) ) {break;}
 								if (reg[ir.r1] > reg[ir.r2]) {
 									pc = ir.p;
 								} else {
@@ -365,6 +456,31 @@ public class Sistema {
     public class InterruptHandling {
             public void handle(Interrupts irpt, int pc) {   // apenas avisa - todas interrupcoes neste momento finalizam o programa
 				System.out.println("                                               Interrupcao "+ irpt+ "   pc: "+pc);
+				switch (irpt) {
+					case intEnderecoInvalido:
+						System.out.println("Ocorreu a interrupção " + irpt + ", na linha pc: " + pc);
+						
+						break;
+					case intInstrucaoInvalida:
+					System.out.println("Ocorreu a interrupção " + irpt + ", na linha pc: " + pc);
+					break;
+
+					case intOverflow:
+					System.out.println("Ocorreu a interrupção " + irpt + ", na linha pc: " + pc);
+
+					break;
+
+					case intRegistradorInvalido:
+					System.out.println("Ocorreu a interrupção " + irpt + ", na linha pc: " + pc);
+
+					break;
+
+					case intSTOP:
+					System.out.println("Ocorreu a interrupção " + irpt + ", na linha pc: " + pc);
+				
+					default:
+						break;
+				}
 			}
 	}
 
@@ -376,6 +492,31 @@ public class Sistema {
         }
         public void handle() {   // apenas avisa - todas interrupcoes neste momento finalizam o programa
             System.out.println("                                               Chamada de Sistema com op  /  par:  "+ vm.cpu.reg[8] + " / " + vm.cpu.reg[9]);
+			int endereco;
+			//reg[8] da cpu contem o id da syscall
+			switch (vm.cpu.reg[8]) {
+				//entrada
+				case 1:
+					//endereço de destino
+					endereco = vm.cpu.reg[9];
+					Scanner in = new Scanner(System.in);
+					int temp = in.nextInt();
+					vm.mem.m[endereco].opc = Opcode.DATA;
+					vm.mem.m[endereco].p = temp;
+					in.close();
+					break;
+			
+				//saída
+				case 2:
+					//endereço fonte
+					endereco = vm.cpu.reg[9];
+					System.out.println(vm.mem.m[endereco].p);
+					break;
+
+				default:
+				System.out.println("Chamada inválida!");
+					break;
+			}
 		}
     }
 
