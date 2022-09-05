@@ -492,6 +492,31 @@ public class Sistema {
         }
         public void handle() {   // apenas avisa - todas interrupcoes neste momento finalizam o programa
             System.out.println("                                               Chamada de Sistema com op  /  par:  "+ vm.cpu.reg[8] + " / " + vm.cpu.reg[9]);
+			int endereco;
+			//reg[8] da cpu contem o id da syscall
+			switch (vm.cpu.reg[8]) {
+				//entrada
+				case 1:
+					//endereço de destino
+					endereco = vm.cpu.reg[9];
+					Scanner in = new Scanner(System.in);
+					int temp = in.nextInt();
+					vm.mem.m[endereco].opc = Opcode.DATA;
+					vm.mem.m[endereco].p = temp;
+					in.close();
+					break;
+			
+				//saída
+				case 2:
+					//endereço fonte
+					endereco = vm.cpu.reg[9];
+					System.out.println(vm.mem.m[endereco].p);
+					break;
+
+				default:
+				System.out.println("Chamada inválida!");
+					break;
+			}
 		}
     }
 
