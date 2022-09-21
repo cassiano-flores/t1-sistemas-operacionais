@@ -655,6 +655,8 @@ public class Sistema {
 	}
 
 	private void loadAndExec(Word[] p) {
+		//cria processo
+
 		loadProgram(p); // carga do programa na memoria
 		System.out.println("---------------------------------- programa carregado na memoria");
 		vm.mem.dump(0, p.length); // dump da memoria nestas posicoes
@@ -673,15 +675,17 @@ public class Sistema {
 	public InterruptHandling ih;
 	public SysCallHandling sysCall;
 	public static Programas progs;
+	public PCB rodando;
 
 	/**
 	 * Gerente de memória
 	 */
-	public class GM {
+	public static class GM {
 
 		private int nroParticao;
-		private boolean[] frame;
-		private int tamPart, tamMem;
+		private static boolean[] frame;
+		public static int tamPart;
+		public int tamMem;
 
 		public void init(int tamMem, int tamPart) {
 			this.tamPart = tamPart;
@@ -696,7 +700,7 @@ public class Sistema {
 			}
 		}
 
-		int[] aloca(int tamProg) {
+		public static int[] aloca(int tamProg) {
 			int[] result = { -1, -1 };
 			// se o programa for maior que o tamanho da partição
 			if (tamProg > tamPart) {
@@ -729,7 +733,7 @@ public class Sistema {
 		// olhar caso na primeira posição for true
 		
 
-		public void desaloca(int particao) {
+		public static void desaloca(int particao) {
 
 			//se a partição for inválida
 			if (particao < 0 || particao > frame.length) {
@@ -762,9 +766,78 @@ public class Sistema {
 			//    obtém a pos inicial da particao e soma o endereço lógico
 			return iniPart(part) + endLog;
 			
-		}
+		}		
 	}
 
+
+	/**
+	 * Gerente de Processo
+	 */
+	public class GP {
+		int id = 0;
+		int invalido =-1;
+		ArrayList<PCB> listaAptos = new ArrayList<>();
+		
+		boolean criaProcesso(Word[] prog){
+			int tamProg = prog.length;
+			PCB pcb;
+			if (GM.tamPart > tamProg) {
+				int[] result = GM.aloca(tamProg);
+				if (result[0] == invalido) {
+					return false;
+				}
+				pcb = new PCB(result[1], 'c', tamProg, id);
+				id++;
+				//adiciona processo na lista de prontos
+				listaAptos.add(pcb);
+				return true;
+			}
+			return false;	
+		}
+
+
+		void desalocaProcesso(int pid){
+			for (PCB pcb : listaAptos) {
+				//se o pcb da lista for o mesmo do parâmetro
+				if(pcb.id == pid){
+					//desaloca a partição
+					GM.desaloca(pcb.particao);
+					//remove das listas
+					listaAptos.remove(pcb);
+					//desaloca o pcb
+					pcb=null;
+					//sai do for
+					break;
+				}
+			}
+		}
+
+		
+	}
+
+	/**
+	 * Process Control Block
+	 */
+	public class PCB {
+
+		int particao;
+		char estadoAtual;
+		int tamanho;
+		int id;
+		int pc;
+
+		public PCB(int particao, char estadoAtual, int tamanho, int id) {
+			this.particao = particao;
+			this.estadoAtual = estadoAtual;
+			this.tamanho = tamanho;
+			this.id = id;
+			this.pc = 0;
+		}
+
+		public void setEstadoAtual(char estadoAtual) {
+			this.estadoAtual = estadoAtual;
+		}
+	}
 	// ------------------- S I S T E M A - fim
 	// --------------------------------------------------------------
 	// -------------------------------------------------------------------------------------------------------
