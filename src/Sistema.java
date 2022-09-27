@@ -126,6 +126,10 @@ public class Sistema {
 			limite = _mem.tamMem; // limite superior da memória
 		}
 
+		public void setDebug(boolean debug) {
+			this.debug = debug;
+		}
+
 		// teste de memória (in)válida
 		private boolean legal(int e) { // todo acesso a memoria tem que ser verificado
 			// e fora dos limites permitidos de memória
@@ -540,12 +544,17 @@ public class Sistema {
 			// vm deve ser configurada com endereço de tratamento de interrupcoes e de
 			// chamadas de sistema
 			// cria memória
-			this.tamMem=tamMem;
+			this.tamMem = tamMem;
 			mem = new Memory(tamMem);
 			m = mem.m;
 			// cria cpu
 			cpu = new CPU(mem, ih, sysCall, true); // true liga debug
 		}
+
+		public void setDebug(boolean debug) {
+			this.cpu.setDebug(debug);
+		}
+
 	}
 	// ------------------- V M - fim
 	// ------------------------------------------------------------------------
@@ -797,7 +806,7 @@ public class Sistema {
 
 		boolean criaProcesso(Word[] prog) {
 			int tamProg = prog.length;
-			System.out.println(tamProg);//controle
+			System.out.println(tamProg);// controle
 			PCB pcb;
 			// se o programa cabe na partição
 			if (GM.tamPart > tamProg) {
@@ -908,7 +917,7 @@ public class Sistema {
 						switch (prog) {
 							case 1:// Fatorial
 								result = s.gerentePro.criaProcesso(progs.fatorial);
-								//System.out.println(result);
+								// System.out.println(result);
 
 								if (result) {
 									System.out.println("Fatorial criado com sucesso!");
@@ -918,7 +927,7 @@ public class Sistema {
 
 							case 2:// ProgMinimo
 								result = s.gerentePro.criaProcesso(progs.progMinimo);
-								//System.out.println(result);
+								// System.out.println(result);
 								if (result) {
 									System.out.println("ProgMinimo criado com sucesso!");
 								}
@@ -927,7 +936,7 @@ public class Sistema {
 
 							case 3:// Fibonacci10
 								result = s.gerentePro.criaProcesso(progs.fibonacci10);
-								//System.out.println(result);
+								// System.out.println(result);
 								if (result) {
 									System.out.println("Fibonacci10 criado com sucesso!");
 								}
@@ -936,7 +945,7 @@ public class Sistema {
 
 							case 4:// Fatorial TRAP
 								result = s.gerentePro.criaProcesso(progs.fatorialTRAP);
-								//System.out.println(result);
+								// System.out.println(result);
 								if (result) {
 									System.out.println("Fatorial TRAP criado com sucesso!");
 								}
@@ -945,7 +954,7 @@ public class Sistema {
 
 							case 5:// Fibonacci TRAP
 								result = s.gerentePro.criaProcesso(progs.fibonacciTRAP);
-								//System.out.println(result);
+								// System.out.println(result);
 								if (result) {
 									System.out.println("Fibonacci TRAP criado com sucesso!");
 								}
@@ -954,7 +963,7 @@ public class Sistema {
 
 							case 6:// PB
 								result = s.gerentePro.criaProcesso(progs.PB);
-								//System.out.println(result);
+								// System.out.println(result);
 								if (result) {
 									System.out.println("PB criado com sucesso!");
 								}
@@ -963,7 +972,7 @@ public class Sistema {
 
 							case 7:// PC
 								result = s.gerentePro.criaProcesso(progs.PC);
-								//System.out.println(result);
+								// System.out.println(result);
 								if (result) {
 									System.out.println("PC criado com sucesso!");
 								}
@@ -983,6 +992,10 @@ public class Sistema {
 					break;
 
 				case 3:// desaloca processo
+					System.out.println("Digite o ID do processo a ser desalocado!");
+					int id = n.nextInt();
+					s.gerentePro.desalocaProcesso(id);
+					System.out.println("Processo desalocado!");
 
 					break;
 
@@ -996,11 +1009,13 @@ public class Sistema {
 					break;
 
 				case 6:// trace on
-
+					s.vm.setDebug(true);
+					System.out.println("Trace ativado");
 					break;
 
 				case 7:// trace off
-
+					s.vm.setDebug(false);
+					System.out.println("Trace desativado");
 					break;
 
 				case 0:// sair
@@ -1015,7 +1030,7 @@ public class Sistema {
 
 		// s.loadAndExec(progs.fibonacci10);
 		// s.loadAndExec(progs.progMinimo);
-		s.loadAndExec(progs.fatorial);
+		//s.loadAndExec(progs.fatorial);
 		// s.loadAndExec(progs.fatorialTRAP); // saida
 		// s.loadAndExec(progs.fibonacciTRAP); // entrada
 		// s.loadAndExec(progs.PC); // bubble sort
