@@ -676,6 +676,7 @@ public class Sistema {
 	public SysCallHandling sysCall;
 	public static Programas progs;
 	public PCB rodando;
+	public ArrayList<PCB> listaAptos;
 
 	public Sistema(){   // a VM com tratamento de interrupções
 		ih = new InterruptHandling();
@@ -683,6 +684,7 @@ public class Sistema {
 		vm = new VM(ih, sysCall);
 		sysCall.setVM(vm);
 		progs = new Programas();
+		listaAptos = new ArrayList<>();
    }
 
 	/**
@@ -729,9 +731,7 @@ public class Sistema {
 					return result;
 				}
 			}
-
 			return result;
-
 		}
 
 		// vetor aloca tem 2 posições,
@@ -784,17 +784,21 @@ public class Sistema {
 	public class GP {
 		int id = 0;
 		int invalido =-1;
-		ArrayList<PCB> listaAptos = new ArrayList<>();
 		
 		boolean criaProcesso(Word[] prog){
 			int tamProg = prog.length;
 			PCB pcb;
+			//se o programa cabe na partição
 			if (GM.tamPart > tamProg) {
+				//pede uma partição
 				int[] result = GM.aloca(tamProg);
+				//se não dá pra alocar
 				if (result[0] == invalido) {
 					return false;
 				}
+				//se der, cria um PCB do programa
 				pcb = new PCB(result[1], 'c', tamProg, id);
+				//incrementa o id geral
 				id++;
 				//adiciona processo na lista de prontos
 				listaAptos.add(pcb);
@@ -854,6 +858,21 @@ public class Sistema {
 	// ------------------- instancia e testa sistema
 	public static void main(String args[]) {
 		Sistema s = new Sistema();
+		boolean exec = true;
+		Scanner n = new Scanner(System.in);
+
+		while (exec) {
+			System.out.println();
+                System.out.println("1 - Criar Programa");
+                System.out.println("2 - Dump de Processo");
+                System.out.println("3 - Desalocar Processo");
+                System.out.println("4 - Dump de Memória");
+                System.out.println("5 - Executar Processo");
+                System.out.println("6 - TraceOn");
+                System.out.println("7 - TraceOff");
+                System.out.println("0 - Exit");
+		}
+
 		// s.loadAndExec(progs.fibonacci10);
 		// s.loadAndExec(progs.progMinimo);
 		s.loadAndExec(progs.fatorial);
