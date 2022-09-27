@@ -677,6 +677,14 @@ public class Sistema {
 	public static Programas progs;
 	public PCB rodando;
 
+	public Sistema(){   // a VM com tratamento de interrupções
+		ih = new InterruptHandling();
+		sysCall = new SysCallHandling();
+		vm = new VM(ih, sysCall);
+		sysCall.setVM(vm);
+		progs = new Programas();
+   }
+
 	/**
 	 * Gerente de memória
 	 */
