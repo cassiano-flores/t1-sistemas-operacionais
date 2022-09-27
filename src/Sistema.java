@@ -536,11 +536,11 @@ public class Sistema {
 		public Memory mem;
 		public CPU cpu;
 
-		public VM(InterruptHandling ih, SysCallHandling sysCall) {
+		public VM(InterruptHandling ih, SysCallHandling sysCall, int tamMem) {
 			// vm deve ser configurada com endereço de tratamento de interrupcoes e de
 			// chamadas de sistema
 			// cria memória
-			tamMem = 1024;
+			this.tamMem=tamMem;
 			mem = new Memory(tamMem);
 			m = mem.m;
 			// cria cpu
@@ -655,7 +655,7 @@ public class Sistema {
 	}
 
 	private void loadAndExec(Word[] p) {
-		//cria processo
+		// cria processo
 
 		loadProgram(p); // carga do programa na memoria
 		System.out.println("---------------------------------- programa carregado na memoria");
@@ -678,14 +678,26 @@ public class Sistema {
 	public PCB rodando;
 	public ArrayList<PCB> listaAptos;
 
-	public Sistema(){   // a VM com tratamento de interrupções
+	public PCB pcbclasse;
+	public GM gerenteMem;
+	public GP gerentePro;
+
+	public Sistema() { // a VM com tratamento de interrupções
+		int tamMem = 1024;
+		int tamPart = 64;
 		ih = new InterruptHandling();
 		sysCall = new SysCallHandling();
-		vm = new VM(ih, sysCall);
+		vm = new VM(ih, sysCall, tamMem);
 		sysCall.setVM(vm);
 		progs = new Programas();
+
 		listaAptos = new ArrayList<>();
-   }
+		gerenteMem = new GM();
+		gerentePro = new GP();
+		pcbclasse = new PCB();
+
+		gerenteMem.init(tamMem, tamPart);
+	}
 
 	/**
 	 * Gerente de memória
@@ -721,13 +733,13 @@ public class Sistema {
 			for (int i = 0; i < frame.length; i++) {
 				// se um frame estiver livre
 				if (frame[i]) {
-					//marca como válido
+					// marca como válido
 					result[0] = 1;
-					//salva a partição
+					// salva a partição
 					result[1] = i;
-					//marca como usando
+					// marca como usando
 					frame[i] = false;
-					//retorna
+					// retorna
 					return result;
 				}
 			}
@@ -739,92 +751,89 @@ public class Sistema {
 		// alocar(false == -1)
 		// e a segunda posição mostra qual o número da partição que foi alocada. (só
 		// olhar caso na primeira posição for true
-		
 
 		public static void desaloca(int particao) {
 
-			//se a partição for inválida
+			// se a partição for inválida
 			if (particao < 0 || particao > frame.length) {
 				System.out.println("Número de partição inválido");
 			} else {
-				//marca como livre
+				// marca como livre
 				frame[particao] = true;
 			}
 		}
 
-		//obtém o endereço de memória inicial de uma partição
-		private int iniPart(int part){
+		// obtém o endereço de memória inicial de uma partição
+		private int iniPart(int part) {
 			//
 			return part * tamPart;
 		}
 
-		//obtém o endereço de memória final de uma partição
-		private int fimPart(int part){
-			//obtém o endereço inicial da partição seguinte e subtrai 1
-			return (part + 1) * tamPart -1;
+		// obtém o endereço de memória final de uma partição
+		private int fimPart(int part) {
+			// obtém o endereço inicial da partição seguinte e subtrai 1
+			return (part + 1) * tamPart - 1;
 		}
 
-		//endereço logico e partição
+		// endereço logico e partição
 		public int traduzMem(int endLog, int part) {
-			//se o endereço lógico for inválido
-			if(endLog < 0 || endLog > tamPart){
-				//retorna valor inválido
+			// se o endereço lógico for inválido
+			if (endLog < 0 || endLog > tamPart) {
+				// retorna valor inválido
 				return -1;
 			}
-			//    obtém a pos inicial da particao e soma o endereço lógico
+			// obtém a pos inicial da particao e soma o endereço lógico
 			return iniPart(part) + endLog;
-			
-		}		
-	}
 
+		}
+	}
 
 	/**
 	 * Gerente de Processo
 	 */
 	public class GP {
 		int id = 0;
-		int invalido =-1;
-		
-		boolean criaProcesso(Word[] prog){
+		int invalido = -1;
+
+		boolean criaProcesso(Word[] prog) {
 			int tamProg = prog.length;
+			System.out.println(tamProg);//controle
 			PCB pcb;
-			//se o programa cabe na partição
+			// se o programa cabe na partição
 			if (GM.tamPart > tamProg) {
-				//pede uma partição
+				// pede uma partição
 				int[] result = GM.aloca(tamProg);
-				//se não dá pra alocar
+				// se não dá pra alocar
 				if (result[0] == invalido) {
 					return false;
 				}
-				//se der, cria um PCB do programa
+				// se der, cria um PCB do programa
 				pcb = new PCB(result[1], 'c', tamProg, id);
-				//incrementa o id geral
+				// incrementa o id geral
 				id++;
-				//adiciona processo na lista de prontos
+				// adiciona processo na lista de prontos
 				listaAptos.add(pcb);
 				return true;
 			}
-			return false;	
+			return false;
 		}
 
-
-		void desalocaProcesso(int pid){
+		void desalocaProcesso(int pid) {
 			for (PCB pcb : listaAptos) {
-				//se o pcb da lista for o mesmo do parâmetro
-				if(pcb.id == pid){
-					//desaloca a partição
+				// se o pcb da lista for o mesmo do parâmetro
+				if (pcb.id == pid) {
+					// desaloca a partição
 					GM.desaloca(pcb.particao);
-					//remove das listas
+					// remove das listas
 					listaAptos.remove(pcb);
-					//desaloca o pcb
-					pcb=null;
-					//sai do for
+					// desaloca o pcb
+					pcb = null;
+					// sai do for
 					break;
 				}
 			}
 		}
 
-		
 	}
 
 	/**
@@ -837,6 +846,9 @@ public class Sistema {
 		int tamanho;
 		int id;
 		int pc;
+
+		public PCB() {
+		}
 
 		public PCB(int particao, char estadoAtual, int tamanho, int id) {
 			this.particao = particao;
@@ -860,17 +872,145 @@ public class Sistema {
 		Sistema s = new Sistema();
 		boolean exec = true;
 		Scanner n = new Scanner(System.in);
+		int key;
 
 		while (exec) {
 			System.out.println();
-                System.out.println("1 - Criar Programa");
-                System.out.println("2 - Dump de Processo");
-                System.out.println("3 - Desalocar Processo");
-                System.out.println("4 - Dump de Memória");
-                System.out.println("5 - Executar Processo");
-                System.out.println("6 - TraceOn");
-                System.out.println("7 - TraceOff");
-                System.out.println("0 - Exit");
+			System.out.println("Selecione operacao:");
+			System.out.println("1 - Criar Processo");
+			System.out.println("2 - Dump de Processo");
+			System.out.println("3 - Desalocar Processo");
+			System.out.println("4 - Dump de Memória");
+			System.out.println("5 - Executar Processo");
+			System.out.println("6 - TraceOn");
+			System.out.println("7 - TraceOff");
+			System.out.println("0 - Exit");
+
+			key = n.nextInt();
+			n.nextLine();
+
+			switch (key) {
+				case 1:// criar processo
+					boolean procs = true;
+					while (procs) {
+						System.out.println("Selecione o programa:");
+						System.out.println();
+						System.out.println("1 - Fatorial");
+						System.out.println("2 - ProgMinimo");
+						System.out.println("3 - Fibonacci10");
+						System.out.println("4 - Fatorial TRAP");
+						System.out.println("5 - Fibonacci TRAP");
+						System.out.println("6 - PB");
+						System.out.println("7 - PC");
+
+						int prog = n.nextInt();
+						boolean result;
+						switch (prog) {
+							case 1:// Fatorial
+								result = s.gerentePro.criaProcesso(progs.fatorial);
+								//System.out.println(result);
+
+								if (result) {
+									System.out.println("Fatorial criado com sucesso!");
+								}
+								procs = false;
+								break;
+
+							case 2:// ProgMinimo
+								result = s.gerentePro.criaProcesso(progs.progMinimo);
+								//System.out.println(result);
+								if (result) {
+									System.out.println("ProgMinimo criado com sucesso!");
+								}
+								procs = false;
+								break;
+
+							case 3:// Fibonacci10
+								result = s.gerentePro.criaProcesso(progs.fibonacci10);
+								//System.out.println(result);
+								if (result) {
+									System.out.println("Fibonacci10 criado com sucesso!");
+								}
+								procs = false;
+								break;
+
+							case 4:// Fatorial TRAP
+								result = s.gerentePro.criaProcesso(progs.fatorialTRAP);
+								//System.out.println(result);
+								if (result) {
+									System.out.println("Fatorial TRAP criado com sucesso!");
+								}
+								procs = false;
+								break;
+
+							case 5:// Fibonacci TRAP
+								result = s.gerentePro.criaProcesso(progs.fibonacciTRAP);
+								//System.out.println(result);
+								if (result) {
+									System.out.println("Fibonacci TRAP criado com sucesso!");
+								}
+								procs = false;
+								break;
+
+							case 6:// PB
+								result = s.gerentePro.criaProcesso(progs.PB);
+								//System.out.println(result);
+								if (result) {
+									System.out.println("PB criado com sucesso!");
+								}
+								procs = false;
+								break;
+
+							case 7:// PC
+								result = s.gerentePro.criaProcesso(progs.PC);
+								//System.out.println(result);
+								if (result) {
+									System.out.println("PC criado com sucesso!");
+								}
+								procs = false;
+								break;
+
+							default:
+								break;
+						}
+
+					}
+
+					break;
+
+				case 2:// dump processo
+
+					break;
+
+				case 3:// desaloca processo
+
+					break;
+
+				case 4:// demp de memória
+
+					break;
+
+				case 5:// executar processo
+
+					s.loadAndExec(progs.fatorial);
+					break;
+
+				case 6:// trace on
+
+					break;
+
+				case 7:// trace off
+
+					break;
+
+				case 0:// sair
+					exec = false;
+					break;
+
+				default:
+					break;
+			}
+
 		}
 
 		// s.loadAndExec(progs.fibonacci10);
