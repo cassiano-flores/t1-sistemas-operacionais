@@ -999,7 +999,14 @@ public class Sistema {
 
 					break;
 
-				case 4:// demp de memória
+				case 4:// dump de memória
+					System.out.println("Digite a posição inicial desejada.");
+					int ini = n.nextInt();
+
+					System.out.println("\nDigite a posição final desejada.\n");
+					int fim = n.nextInt();
+
+					s.vm.mem.dump(ini, fim);
 
 					break;
 
@@ -1030,7 +1037,7 @@ public class Sistema {
 
 		// s.loadAndExec(progs.fibonacci10);
 		// s.loadAndExec(progs.progMinimo);
-		//s.loadAndExec(progs.fatorial);
+		// s.loadAndExec(progs.fatorial);
 		// s.loadAndExec(progs.fatorialTRAP); // saida
 		// s.loadAndExec(progs.fibonacciTRAP); // entrada
 		// s.loadAndExec(progs.PC); // bubble sort
