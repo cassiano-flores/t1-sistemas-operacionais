@@ -9,6 +9,8 @@
 
 import java.util.*;
 
+import Sistema_1a.GM;
+
 public class Sistema_1b {
 
 	// -------------------------------------------------------------------------------------------------------
@@ -687,22 +689,24 @@ public class Sistema_1b {
 		vm.cpu.run(); // cpu roda programa ate parar
 	}
 
-	public void carga(Word[] p, Word[] m, int part) {
-		int inicio = iniPart(part);
-		int fim = fimPart(part);
+	public void carga(Word[] p, Word[] m, ArrayList<Integer> tabPaginas) {
 
-		for (int i = inicio, j = 0; i < fim && j < p.length; i++, j++) {
-			m[i].opc = p[j].opc;
-			m[i].r1 = p[j].r1;
-			m[i].r2 = p[j].r2;
-			m[i].p = p[j].p;
+		int inicio, fim, j=0;
+		for (Integer pag : tabPaginas) {
+			inicio = iniPart(pag);
+			fim = fimPart(pag);
+			for (int i = inicio; i <= fim && j < p.length; i++, j++) {
+				m[i].opc = p[j].opc;
+				m[i].r1 = p[j].r1;
+				m[i].r2 = p[j].r2;
+				m[i].p = p[j].p;
+			}
 
 		}
-
 	}
 
-	public void carga(Word[] p, int part) {
-		carga(p, vm.m, part);
+	public void carga(Word[] p, ArrayList<Integer> tabPaginas) {
+		carga(p, vm.m, tabPaginas);
 	}
 
 	public void dumpParticao(int part) {
@@ -834,13 +838,13 @@ public class Sistema_1b {
 			return tabPag;
 		}
 
-		public static void desaloca(int[] paginas) {
 
-			for (int i = 0; i < paginas.length; i++) {
-				// marca como livre
-				frame[paginas[i]] = true;
+		public static void desaloca(ArrayList<Integer> tabPaginas) {
+			for (Integer pag : tabPaginas) {
+				//marca como livre
+				frame[pag] = true;
 			}
-
+			
 		}
 
 	}
@@ -851,40 +855,43 @@ public class Sistema_1b {
 	public class GP {
 		int id = 0;
 		int invalido = -1;
+		ArrayList<Integer> tabPaginas;
 
 		boolean criaProcesso(Word[] prog) {
 			int tamProg = prog.length;
 			System.out.println(tamProg);// controle
 			PCB pcb;
-			// se o programa cabe na partição
-			if (GM.tamPg > tamProg) {
-				// pede uma partição
-				int[] result = GM.aloca(tamProg);
-				// se não dá pra alocar
-				if (result[0] == invalido) {
-					return false;
-				}
-				// se der, cria um PCB do programa
-				pcb = new PCB(result[1], 'c', tamProg, id);
-				System.out.println("id pcb: " + pcb.id);
-				// incrementa o id geral
-				System.out.println("id antes: " + id);
-				id++;
-				System.out.println("id dps: " + id);
-				carga(prog, result[1]);
-				// adiciona processo na lista de prontos
-				listaAptos.add(pcb);
-				return true;
+			int[] result = GM.aloca(tamProg);
+			tabPaginas = new ArrayList<>();
+
+			// se não deu pra alocar tudo
+			if (result[0] == invalido) {
+				return false;
 			}
-			return false;
+
+			for (int i = 0; i < result.length; i++) {
+				// "converte" de array pra arraylist
+				tabPaginas.add(i, result[i]);
+			}
+
+			// cria um PCB do programa
+			pcb = new PCB(tabPaginas, 'c', tamProg, id);
+			// incrementa o id geral
+			id++;
+
+			carga(prog, tabPaginas);
+
+			listaAptos.add(pcb);
+
+			return true;
 		}
 
 		void desalocaProcesso(int pid) {
 			for (PCB pcb : listaAptos) {
 				// se o pcb da lista for o mesmo do parâmetro
 				if (pcb.id == pid) {
-					// desaloca a partição
-					GM.desaloca(pcb.particao);
+					// desaloca paginas
+					GM.desaloca(pcb.tabPaginas);
 					// remove das listas
 					listaAptos.remove(pcb);
 					// desaloca o pcb
@@ -902,17 +909,17 @@ public class Sistema_1b {
 	 */
 	public class PCB {
 
-		int particao;
 		char estadoAtual;
 		int tamanho;
 		int id;
 		int pc;
+		ArrayList<Integer> tabPaginas;
 
 		public PCB() {
 		}
 
-		public PCB(int particao, char estadoAtual, int tamanho, int id) {
-			this.particao = particao;
+		public PCB(ArrayList<Integer> tabPaginas, char estadoAtual, int tamanho, int id) {
+			this.tabPaginas = tabPaginas;
 			this.estadoAtual = estadoAtual;
 			this.tamanho = tamanho;
 			this.id = id;
@@ -925,8 +932,15 @@ public class Sistema_1b {
 
 		@Override
 		public String toString() {
-			return "PCB [id=" + id + ", particao=" + particao + ", estadoAtual=" + estadoAtual + ", pc=" + pc
-					+ ", tamanho=" + tamanho + "]";
+			String x = "PCB [id=" + id + ", estadoAtual=" + estadoAtual + ", pc=" + pc
+					+ ", tamanho=" + tamanho + "\n";
+
+			String y = "";
+
+			for (int i = 0; i < tabPaginas.size(); i++) {
+				y += "pag: " + tabPaginas.get(i).toString() + "\n";
+			}
+			return x + y;
 		}
 
 	}
