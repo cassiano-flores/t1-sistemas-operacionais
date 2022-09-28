@@ -9,8 +9,6 @@
 
 import java.util.*;
 
-import Sistema_1a.GM;
-
 public class Sistema_1b {
 
 	// -------------------------------------------------------------------------------------------------------
@@ -139,11 +137,11 @@ public class Sistema_1b {
 				irpt = Interrupts.intEnderecoInvalido;
 				return false;
 			}
-			// se o endereço estiver fora dos limites da partição
+			/* // se o endereço estiver fora dos limites da partição
 			if (e < iniPart(rodando.particao) || e > fimPart(rodando.particao)) {
 				irpt = Interrupts.intEnderecoInvalido;
 				return false;
-			}
+			} */
 			return true;
 		}
 
@@ -683,18 +681,23 @@ public class Sistema_1b {
 	}
 
 	public void executa() {
-		int ini = iniPart(rodando.particao);
+		/* int ini = iniPart(rodando.particao);
 		int fim = fimPart(rodando.particao);
 		vm.cpu.setContext(ini, fim, rodando.pc); // seta estado da cpu ]
-		vm.cpu.run(); // cpu roda programa ate parar
+		vm.cpu.run(); // cpu roda programa ate parar */
+		System.out.println("não está executando!");
 	}
 
 	public void carga(Word[] p, Word[] m, ArrayList<Integer> tabPaginas) {
 
-		int inicio, fim, j=0;
+		int inicio, fim, j = 0;
+		// pra cada pagina da lista
 		for (Integer pag : tabPaginas) {
+			// pega o inicio e o fim
 			inicio = iniPart(pag);
 			fim = fimPart(pag);
+			// percorre as posiçoes de memoria da pagina setando as instruçoes do programa
+			// (referentes àquela pagina)
 			for (int i = inicio; i <= fim && j < p.length; i++, j++) {
 				m[i].opc = p[j].opc;
 				m[i].r1 = p[j].r1;
@@ -838,13 +841,12 @@ public class Sistema_1b {
 			return tabPag;
 		}
 
-
 		public static void desaloca(ArrayList<Integer> tabPaginas) {
 			for (Integer pag : tabPaginas) {
-				//marca como livre
+				// marca como livre
 				frame[pag] = true;
 			}
-			
+
 		}
 
 	}
@@ -862,12 +864,13 @@ public class Sistema_1b {
 			System.out.println(tamProg);// controle
 			PCB pcb;
 			int[] result = GM.aloca(tamProg);
-			tabPaginas = new ArrayList<>();
 
 			// se não deu pra alocar tudo
 			if (result[0] == invalido) {
 				return false;
 			}
+
+			tabPaginas = new ArrayList<>();
 
 			for (int i = 0; i < result.length; i++) {
 				// "converte" de array pra arraylist
@@ -1070,7 +1073,8 @@ public class Sistema_1b {
 							String aux = s.listaAptos.get(i).toString();
 							System.out.println(aux);
 							System.out.println();
-							s.dumpParticao(s.listaAptos.get(i).particao);
+							//s.dumpParticao(s.listaAptos.get(i).particao);
+							System.out.println("não está printando!");
 						}
 
 					}
