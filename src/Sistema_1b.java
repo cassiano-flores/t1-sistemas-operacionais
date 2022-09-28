@@ -655,27 +655,28 @@ public class Sistema_1b {
 	// -----------------------------------------
 	// ------------------ load é invocado a partir de requisição do usuário
 
-	// obtém o endereço de memória inicial de uma partição
+	// obtém o endereço de memória inicial de um frame
 	private int iniPart(int frame) {
-		//frame * tamFrame			tamFram==tamPg
+		// frame * tamFrame tamFram==tamPg
 		return frame * tamPg;
 	}
 
-	// obtém o endereço de memória final de uma partição
-	private int fimPart(int part) {
-		// obtém o endereço inicial da partição seguinte e subtrai 1
-		return (part + 1) * tamPg - 1;
+	// obtém o endereço de memória final de um frame
+	private int fimPart(int frame) {
+		// obtém o endereço inicial do frame seguinte e subtrai 1
+		return (frame + 1) * tamPg - 1;
 	}
 
 	// endereço logico e partição
-	public int traduzMem(int endLog, int part) {
-		// se o endereço lógico for inválido
-		if (endLog < 0 || endLog > tamPg) {
-			// retorna valor inválido
-			return -1;
-		}
-		// obtém a pos inicial da particao e soma o endereço lógico
-		return iniPart(part) + endLog;
+	public int traduzMem(int endLog, int[] paginas) {
+		int pag = endLog / tamPg;
+		int offset = endLog % tamPg;
+
+		// endereco fisico é o inicio da página + offset
+		int endFis = iniPart(paginas[pag]);
+		endFis += offset;
+
+		return endFis;
 
 	}
 
@@ -798,15 +799,15 @@ public class Sistema_1b {
 		}
 
 		public static int[] aloca(int tamProg) {
-			//define a qtd de paginas pro programa
+			// define a qtd de paginas pro programa
 			int nroPaginas = tamProg / tamPg;
 			if (tamProg % tamPg != 0) {
 				nroPaginas += 1;
 			}
-	
+
 			int[] tabPag = new int[nroPaginas];
 
-			//marca todas posicoes como inválidas
+			// marca todas posicoes como inválidas
 			for (int i = 0; i < tabPag.length; i++) {
 				tabPag[i] = -1;
 			}
@@ -823,23 +824,23 @@ public class Sistema_1b {
 					j++;
 				}
 			}
-			//se não alocou alguma página
-			if (tabPag[nroPaginas-1] == -1) {
-				//retorna uma falha
+			// se não alocou alguma página
+			if (tabPag[nroPaginas - 1] == -1) {
+				// retorna uma falha
 				int[] falha = { -1 };
 				return falha;
 			}
-			//se deu tudo certo, retorna o resultado
+			// se deu tudo certo, retorna o resultado
 			return tabPag;
 		}
 
 		public static void desaloca(int[] paginas) {
 
-			for(int i = 0; i< paginas.length; i++){
+			for (int i = 0; i < paginas.length; i++) {
 				// marca como livre
 				frame[paginas[i]] = true;
 			}
-			
+
 		}
 
 	}
