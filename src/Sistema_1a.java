@@ -9,7 +9,7 @@
 
 import java.util.*;
 
-public class Sistema {
+public class Sistema_1a {
 
 	// -------------------------------------------------------------------------------------------------------
 	// --------------------- H A R D W A R E - definicoes de HW
@@ -756,7 +756,7 @@ public class Sistema {
 	int tamMem;
 	int tamPart;
 
-	public Sistema() { // a VM com tratamento de interrupções
+	public Sistema_1a() { // a VM com tratamento de interrupções
 		tamMem = 1024;
 		tamPart = 64;
 		ih = new InterruptHandling();
@@ -931,7 +931,7 @@ public class Sistema {
 	// -------------------------------------------------------------------------------------------------------
 	// ------------------- instancia e testa sistema
 	public static void main(String args[]) {
-		Sistema s = new Sistema();
+		Sistema_1a s = new Sistema_1a();
 		boolean exec = true;
 		Scanner n = new Scanner(System.in);
 		int key;
@@ -1051,11 +1051,12 @@ public class Sistema {
 							System.out.println(aux);
 							System.out.println();
 							s.dumpParticao(s.listaAptos.get(i).particao);
+							break;
 						}
 
 					}
 
-					// System.out.println("Processo não existe!");
+					//System.out.println("Processo não existe!");
 
 					break;
 
@@ -1088,6 +1089,7 @@ public class Sistema {
 							//executa
 							s.rodando = s.listaAptos.get(i);
 							s.executa();
+							break;
 						}
 
 					}
