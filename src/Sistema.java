@@ -137,6 +137,11 @@ public class Sistema {
 				irpt = Interrupts.intEnderecoInvalido;
 				return false;
 			}
+			//se o endereço estiver fora dos limites da partição
+			if (e< iniPart(rodando.particao)|| e > fimPart(rodando.particao)) {
+				irpt = Interrupts.intEnderecoInvalido;
+				return false;
+			}
 			return true;
 		}
 
@@ -674,15 +679,22 @@ public class Sistema {
 
 	}
 
+	public void executa() {
+		int ini = iniPart(rodando.particao);
+		int fim = fimPart(rodando.particao);
+		vm.cpu.setContext(ini,fim,rodando.pc); // seta estado da cpu ]
+		vm.cpu.run(); // cpu roda programa ate parar
+	}
+
 	public void carga(Word[] p, Word[] m, int part) {
 		int inicio = iniPart(part);
 		int fim = fimPart(part);
 
-		for (int i = inicio, j = 0; i < fim && j<p.length; i++, j++) {
-				m[i].opc = p[j].opc;
-				m[i].r1 = p[j].r1;
-				m[i].r2 = p[j].r2;
-				m[i].p = p[j].p;
+		for (int i = inicio, j = 0; i < fim && j < p.length; i++, j++) {
+			m[i].opc = p[j].opc;
+			m[i].r1 = p[j].r1;
+			m[i].r2 = p[j].r2;
+			m[i].p = p[j].p;
 
 		}
 
@@ -692,7 +704,7 @@ public class Sistema {
 		carga(p, vm.m, part);
 	}
 
-	public void dumpParticao(int part){
+	public void dumpParticao(int part) {
 		int inicio = iniPart(part);
 		int fim = fimPart(part);
 
@@ -907,11 +919,10 @@ public class Sistema {
 
 		@Override
 		public String toString() {
-			return "PCB [id=" + id + ", particao=" +  particao + ", estadoAtual=" + estadoAtual +  ", pc=" + pc
+			return "PCB [id=" + id + ", particao=" + particao + ", estadoAtual=" + estadoAtual + ", pc=" + pc
 					+ ", tamanho=" + tamanho + "]";
 		}
 
-		
 	}
 	// ------------------- S I S T E M A - fim
 	// --------------------------------------------------------------
@@ -1034,25 +1045,17 @@ public class Sistema {
 					System.out.println("Digite o id do processo.");
 					int pid = n.nextInt();
 
-					for(int i=0;i<s.listaAptos.size();i++){
-						if (s.listaAptos.get(i).id == pid){
-							String aux=s.listaAptos.get(i).toString();
+					for (int i = 0; i < s.listaAptos.size(); i++) {
+						if (s.listaAptos.get(i).id == pid) {
+							String aux = s.listaAptos.get(i).toString();
 							System.out.println(aux);
 							System.out.println();
 							s.dumpParticao(s.listaAptos.get(i).particao);
 						}
-						
+
 					}
 
-					/* for (PCB proc : s.listaAptos) {
-						if (proc.id == pid) {
-							proc.toString();
-							s.dumpParticao(proc.particao);
-							break;
-						}
-					} */
-
-					//System.out.println("Processo não existe!");
+					// System.out.println("Processo não existe!");
 
 					break;
 
@@ -1077,7 +1080,17 @@ public class Sistema {
 
 				case 5:// executar processo
 
-					s.loadAndExec(progs.fatorial);
+					System.out.println("Digite o id do processo.");
+					int ppid = n.nextInt();
+
+					for (int i = 0; i < s.listaAptos.size(); i++) {
+						if (s.listaAptos.get(i).id == ppid) {
+							//executa
+							s.rodando = s.listaAptos.get(i);
+							s.executa();
+						}
+
+					}
 					break;
 
 				case 6:// trace on
