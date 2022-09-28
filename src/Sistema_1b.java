@@ -137,8 +137,8 @@ public class Sistema_1b {
 				irpt = Interrupts.intEnderecoInvalido;
 				return false;
 			}
-			// se o endereço estiver fora dos limites da partição
-			if (e < iniPart(rodando.particao) || e > fimPart(rodando.particao)) {
+			//se o endereço estiver fora dos limites da partição
+			if (e< iniPart(rodando.particao)|| e > fimPart(rodando.particao)) {
 				irpt = Interrupts.intEnderecoInvalido;
 				return false;
 			}
@@ -655,35 +655,34 @@ public class Sistema_1b {
 	// -----------------------------------------
 	// ------------------ load é invocado a partir de requisição do usuário
 
-	// obtém o endereço de memória inicial de um frame
-	private int iniPart(int frame) {
-		// frame * tamFrame tamFram==tamPg
-		return frame * tamPg;
+	// obtém o endereço de memória inicial de uma partição
+	private int iniPart(int part) {
+		//
+		return part * tamPart;
 	}
 
-	// obtém o endereço de memória final de um frame
-	private int fimPart(int frame) {
-		// obtém o endereço inicial do frame seguinte e subtrai 1
-		return (frame + 1) * tamPg - 1;
+	// obtém o endereço de memória final de uma partição
+	private int fimPart(int part) {
+		// obtém o endereço inicial da partição seguinte e subtrai 1
+		return (part + 1) * tamPart - 1;
 	}
 
 	// endereço logico e partição
-	public int traduzMem(int endLog, int[] paginas) {
-		int pag = endLog / tamPg;
-		int offset = endLog % tamPg;
-
-		// endereco fisico é o inicio da página + offset
-		int endFis = iniPart(paginas[pag]);
-		endFis += offset;
-
-		return endFis;
+	public int traduzMem(int endLog, int part) {
+		// se o endereço lógico for inválido
+		if (endLog < 0 || endLog > tamPart) {
+			// retorna valor inválido
+			return -1;
+		}
+		// obtém a pos inicial da particao e soma o endereço lógico
+		return iniPart(part) + endLog;
 
 	}
 
 	public void executa() {
 		int ini = iniPart(rodando.particao);
 		int fim = fimPart(rodando.particao);
-		vm.cpu.setContext(ini, fim, rodando.pc); // seta estado da cpu ]
+		vm.cpu.setContext(ini,fim,rodando.pc); // seta estado da cpu ]
 		vm.cpu.run(); // cpu roda programa ate parar
 	}
 
@@ -755,11 +754,11 @@ public class Sistema_1b {
 	public GP gerentePro;
 
 	int tamMem;
-	int tamPg;
+	int tamPart;
 
 	public Sistema_1b() { // a VM com tratamento de interrupções
 		tamMem = 1024;
-		tamPg = 8;
+		tamPart = 64;
 		ih = new InterruptHandling();
 		sysCall = new SysCallHandling();
 		vm = new VM(ih, sysCall, tamMem);
@@ -771,7 +770,7 @@ public class Sistema_1b {
 		gerentePro = new GP();
 		pcbclasse = new PCB();
 
-		gerenteMem.init(tamMem, tamPg);
+		gerenteMem.init(tamMem, tamPart);
 	}
 
 	/**
@@ -779,19 +778,18 @@ public class Sistema_1b {
 	 */
 	public static class GM {
 
-		private int nroFrames;
+		private int nroParticao;
 		private static boolean[] frame;
-		public static int tamPg;
+		public static int tamPart;
 		public int tamMem;
 
-		public void init(int tamMem, int tamPg) {
-			this.tamPg = tamPg;
+		public void init(int tamMem, int tamPart) {
+			this.tamPart = tamPart;
 			this.tamMem = tamMem;
-			// define o nro de frames
-			this.nroFrames = tamMem / tamPg;
-
+			// define o nro de partições
+			this.nroParticao = tamMem / tamPart;
 			// aloca o array de frames
-			frame = new boolean[nroFrames];
+			frame = new boolean[nroParticao];
 			// seta todos como livre
 			for (int i = 0; i < frame.length; i++) {
 				frame[i] = true;
@@ -799,48 +797,44 @@ public class Sistema_1b {
 		}
 
 		public static int[] aloca(int tamProg) {
-			// define a qtd de paginas pro programa
-			int nroPaginas = tamProg / tamPg;
-			if (tamProg % tamPg != 0) {
-				nroPaginas += 1;
+			int[] result = { -1, -1 };
+			// se o programa for maior que o tamanho da partição
+			if (tamProg > tamPart) {
+				return result;
 			}
 
-			int[] tabPag = new int[nroPaginas];
-
-			// marca todas posicoes como inválidas
-			for (int i = 0; i < tabPag.length; i++) {
-				tabPag[i] = -1;
-			}
-
-			// percorre os frames
-			for (int i = 0, j = 0; i < frame.length && j < nroPaginas; i++) {
+			// percorre o array
+			for (int i = 0; i < frame.length; i++) {
 				// se um frame estiver livre
 				if (frame[i]) {
-					// salva a pagina
-					tabPag[j] = i;
+					// marca como válido
+					result[0] = 1;
+					// salva a partição
+					result[1] = i;
 					// marca como usando
 					frame[i] = false;
-					// atualiza j
-					j++;
+					// retorna
+					return result;
 				}
 			}
-			// se não alocou alguma página
-			if (tabPag[nroPaginas - 1] == -1) {
-				// retorna uma falha
-				int[] falha = { -1 };
-				return falha;
-			}
-			// se deu tudo certo, retorna o resultado
-			return tabPag;
+			return result;
 		}
 
-		public static void desaloca(int[] paginas) {
+		// vetor aloca tem 2 posições,
+		// a primeira define se é possivel alocar(true == 1) ou não é possível
+		// alocar(false == -1)
+		// e a segunda posição mostra qual o número da partição que foi alocada. (só
+		// olhar caso na primeira posição for true
 
-			for (int i = 0; i < paginas.length; i++) {
+		public static void desaloca(int particao) {
+
+			// se a partição for inválida
+			if (particao < 0 || particao > frame.length) {
+				System.out.println("Número de partição inválido");
+			} else {
 				// marca como livre
-				frame[paginas[i]] = true;
+				frame[particao] = true;
 			}
-
 		}
 
 	}
@@ -857,7 +851,7 @@ public class Sistema_1b {
 			System.out.println(tamProg);// controle
 			PCB pcb;
 			// se o programa cabe na partição
-			if (GM.tamPg > tamProg) {
+			if (GM.tamPart > tamProg) {
 				// pede uma partição
 				int[] result = GM.aloca(tamProg);
 				// se não dá pra alocar
@@ -1091,7 +1085,7 @@ public class Sistema_1b {
 
 					for (int i = 0; i < s.listaAptos.size(); i++) {
 						if (s.listaAptos.get(i).id == ppid) {
-							// executa
+							//executa
 							s.rodando = s.listaAptos.get(i);
 							s.executa();
 						}
