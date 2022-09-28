@@ -650,6 +650,55 @@ public class Sistema {
 	// -----------------------------------------
 	// ------------------ load é invocado a partir de requisição do usuário
 
+	// obtém o endereço de memória inicial de uma partição
+	private int iniPart(int part) {
+		//
+		return part * tamPart;
+	}
+
+	// obtém o endereço de memória final de uma partição
+	private int fimPart(int part) {
+		// obtém o endereço inicial da partição seguinte e subtrai 1
+		return (part + 1) * tamPart - 1;
+	}
+
+	// endereço logico e partição
+	public int traduzMem(int endLog, int part) {
+		// se o endereço lógico for inválido
+		if (endLog < 0 || endLog > tamPart) {
+			// retorna valor inválido
+			return -1;
+		}
+		// obtém a pos inicial da particao e soma o endereço lógico
+		return iniPart(part) + endLog;
+
+	}
+
+	public void carga(Word[] p, Word[] m, int part) {
+		int inicio = iniPart(part);
+		int fim = fimPart(part);
+
+		for (int i = inicio, j = 0; i < fim && j<p.length; i++, j++) {
+				m[i].opc = p[j].opc;
+				m[i].r1 = p[j].r1;
+				m[i].r2 = p[j].r2;
+				m[i].p = p[j].p;
+
+		}
+
+	}
+
+	public void carga(Word[] p, int part) {
+		carga(p, vm.m, part);
+	}
+
+	public void dumpParticao(int part){
+		int inicio = iniPart(part);
+		int fim = fimPart(part);
+
+		vm.mem.dump(inicio, fim);
+	}
+
 	private void loadProgram(Word[] p, Word[] m) {
 		for (int i = 0; i < p.length; i++) {
 			m[i].opc = p[i].opc;
@@ -684,6 +733,7 @@ public class Sistema {
 	public InterruptHandling ih;
 	public SysCallHandling sysCall;
 	public static Programas progs;
+
 	public PCB rodando;
 	public ArrayList<PCB> listaAptos;
 
@@ -691,9 +741,12 @@ public class Sistema {
 	public GM gerenteMem;
 	public GP gerentePro;
 
+	int tamMem;
+	int tamPart;
+
 	public Sistema() { // a VM com tratamento de interrupções
-		int tamMem = 1024;
-		int tamPart = 64;
+		tamMem = 1024;
+		tamPart = 64;
 		ih = new InterruptHandling();
 		sysCall = new SysCallHandling();
 		vm = new VM(ih, sysCall, tamMem);
@@ -772,29 +825,6 @@ public class Sistema {
 			}
 		}
 
-		// obtém o endereço de memória inicial de uma partição
-		private int iniPart(int part) {
-			//
-			return part * tamPart;
-		}
-
-		// obtém o endereço de memória final de uma partição
-		private int fimPart(int part) {
-			// obtém o endereço inicial da partição seguinte e subtrai 1
-			return (part + 1) * tamPart - 1;
-		}
-
-		// endereço logico e partição
-		public int traduzMem(int endLog, int part) {
-			// se o endereço lógico for inválido
-			if (endLog < 0 || endLog > tamPart) {
-				// retorna valor inválido
-				return -1;
-			}
-			// obtém a pos inicial da particao e soma o endereço lógico
-			return iniPart(part) + endLog;
-
-		}
 	}
 
 	/**
@@ -818,8 +848,12 @@ public class Sistema {
 				}
 				// se der, cria um PCB do programa
 				pcb = new PCB(result[1], 'c', tamProg, id);
+				System.out.println("id pcb: " + pcb.id);
 				// incrementa o id geral
+				System.out.println("id antes: " + id);
 				id++;
+				System.out.println("id dps: " + id);
+				carga(prog, result[1]);
 				// adiciona processo na lista de prontos
 				listaAptos.add(pcb);
 				return true;
@@ -870,6 +904,14 @@ public class Sistema {
 		public void setEstadoAtual(char estadoAtual) {
 			this.estadoAtual = estadoAtual;
 		}
+
+		@Override
+		public String toString() {
+			return "PCB [id=" + id + ", particao=" +  particao + ", estadoAtual=" + estadoAtual +  ", pc=" + pc
+					+ ", tamanho=" + tamanho + "]";
+		}
+
+		
 	}
 	// ------------------- S I S T E M A - fim
 	// --------------------------------------------------------------
@@ -988,6 +1030,29 @@ public class Sistema {
 					break;
 
 				case 2:// dump processo
+
+					System.out.println("Digite o id do processo.");
+					int pid = n.nextInt();
+
+					for(int i=0;i<s.listaAptos.size();i++){
+						if (s.listaAptos.get(i).id == pid){
+							String aux=s.listaAptos.get(i).toString();
+							System.out.println(aux);
+							System.out.println();
+							s.dumpParticao(s.listaAptos.get(i).particao);
+						}
+						
+					}
+
+					/* for (PCB proc : s.listaAptos) {
+						if (proc.id == pid) {
+							proc.toString();
+							s.dumpParticao(proc.particao);
+							break;
+						}
+					} */
+
+					//System.out.println("Processo não existe!");
 
 					break;
 
