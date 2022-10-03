@@ -137,13 +137,33 @@ public class Sistema_1b {
 				irpt = Interrupts.intEnderecoInvalido;
 				return false;
 			}
-			/*
-			 * // se o endereço estiver fora dos limites da partição
-			 * if (e < iniPart(rodando.particao) || e > fimPart(rodando.particao)) {
-			 * irpt = Interrupts.intEnderecoInvalido;
-			 * return false;
-			 * }
-			 */
+
+			
+			int ini, fim, endfis, teste = 0;
+			int qtd = rodando.tabPaginas.size();
+			//percorre todos os frames
+			for (int i = 0; i < qtd; i++) {
+				//obtem os limites do frame
+				ini = iniPag(rodando.tabPaginas.get(i));
+				fim = fimPag(rodando.tabPaginas.get(i));
+				//obtem o endereco fisico
+				endfis = traduzMem(e);
+				//se o endereco fisico está fora do frame atual
+				if (endfis < ini || endfis > fim) {
+					teste = -1;
+				}else{
+					//se o endereco fisico estiver dentro de algum frame
+					//att variavel
+					teste = 1;
+					//sai do for
+					break;
+				}
+			}
+			//se o endereco fisico esta fora de todos os frames
+			if (teste == -1) {
+				irpt = Interrupts.intEnderecoInvalido;
+				return false;
+			}
 			return true;
 		}
 
@@ -175,6 +195,7 @@ public class Sistema_1b {
 
 		public void run() { // execucao da CPU supoe que o contexto da CPU, vide acima, esta devidamente
 							// setado
+							int temp;
 			while (true) { // ciclo de instrucoes. acaba cfe instrucao, veja cada caso.
 				// --------------------------------------------------------------------------------------------------
 				// FETCH
@@ -328,7 +349,12 @@ public class Sistema_1b {
 							reg[ir.r1] = reg[ir.r1] * reg[ir.r2];
 							testOverflow(reg[ir.r1]);
 							pc++;
-							break;
+						break;
+
+
+
+
+
 
 						// Instrucoes JUMP
 						case JMP: // PC <- k
@@ -336,7 +362,10 @@ public class Sistema_1b {
 							if (!legal(ir.p)) {
 								break;
 							}
-							pc = ir.p;
+							temp = traduzMem(ir.p);
+							if(legal(temp)){
+								pc = temp;
+							} 
 							break;
 
 						case JMPIG: // If Rc > 0 Then PC ← Rs Else PC ← PC +1
@@ -348,7 +377,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] > 0) {
-								pc = reg[ir.r1];
+								pc = traduzMem(reg[ir.r1]);
 							} else {
 								pc++;
 							}
@@ -364,7 +393,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] > 0) {
-								pc = ir.p;
+								pc = traduzMem(ir.p);
 							} else {
 								pc++;
 							}
@@ -380,7 +409,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] < 0) {
-								pc = ir.p;
+								pc = traduzMem(ir.p);
 							} else {
 								pc++;
 							}
@@ -396,7 +425,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] == 0) {
-								pc = ir.p;
+								pc = traduzMem(ir.p);
 							} else {
 								pc++;
 							}
@@ -411,7 +440,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] < 0) {
-								pc = reg[ir.r1];
+								pc = traduzMem(reg[ir.r1]);
 							} else {
 								pc++;
 							}
@@ -426,7 +455,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] == 0) {
-								pc = reg[ir.r1];
+								pc = traduzMem(reg[ir.r1]);
 							} else {
 								pc++;
 							}
@@ -437,7 +466,7 @@ public class Sistema_1b {
 							if (!legal(ir.p)) {
 								break;
 							}
-							pc = m[ir.p].p;
+							pc = traduzMem(m[ir.p].p);
 							break;
 
 						case JMPIGM: // If RC > 0 then PC <- [A] else PC++
@@ -450,7 +479,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] > 0) {
-								pc = m[ir.p].p;
+								pc = traduzMem(m[ir.p].p);
 							} else {
 								pc++;
 							}
@@ -466,7 +495,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] < 0) {
-								pc = m[ir.p].p;
+								pc = traduzMem(m[ir.p].p);
 							} else {
 								pc++;
 							}
@@ -481,7 +510,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] == 0) {
-								pc = m[ir.p].p;
+								pc = traduzMem(m[ir.p].p);
 							} else {
 								pc++;
 							}
@@ -496,7 +525,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r1] > reg[ir.r2]) {
-								pc = ir.p;
+								pc = traduzMem(ir.p);
 							} else {
 								pc++;
 							}
@@ -524,6 +553,10 @@ public class Sistema_1b {
 							break;
 					}
 				}
+
+				// atualiza PCB rodando
+				rodando.pc = this.pc;
+
 				// --------------------------------------------------------------------------------------------------
 				// VERIFICA INTERRUPÇÃO !!! - TERCEIRA FASE DO CICLO DE INSTRUÇÕES
 				if (!(irpt == Interrupts.noInterrupt)) { // existe interrupção
@@ -666,7 +699,7 @@ public class Sistema_1b {
 					break;
 
 				case 4:// shmref
-					// pega a chave em reg[9]
+						// pega a chave em reg[9]
 					int key = vm.cpu.reg[9];
 					Integer pag = pagsComp.get(key);
 					if (pag != null) {
@@ -699,12 +732,13 @@ public class Sistema_1b {
 	}
 
 	// endereço logico e paginas
-	public int traduzMem(int endLog, int[] paginas) {
+	public int traduzMem(int endLog) {
 		int pag = endLog / tamPg;
 		int offset = endLog % tamPg;
 
 		// endereco fisico é o inicio da página + offset
-		int endFis = iniPag(paginas[pag]);
+		// int endFis = iniPag(paginas[pag]);
+		int endFis = iniPag(rodando.tabPaginas.get(pag));
 		endFis += offset;
 
 		return endFis;
@@ -712,18 +746,23 @@ public class Sistema_1b {
 	}
 
 	public void executa() {
-		/*
-		 * int ini = iniPart(rodando.particao);
-		 * int fim = fimPart(rodando.particao);
-		 * vm.cpu.setContext(ini, fim, rodando.pc); // seta estado da cpu ]
-		 * vm.cpu.run(); // cpu roda programa ate parar
-		 */
-		System.out.println("não está executando!");
+		int ini, fim, pag;
+		int qtd = rodando.tabPaginas.size();
+		for (int i = 0; i < qtd; i++) {
+			// pega a pagina
+			pag = rodando.tabPaginas.get(i);
+			// pega os limites da pagina
+			ini = iniPag(pag);
+			fim = fimPag(pag);
+			vm.cpu.setContext(ini, fim, rodando.pc);
+			vm.cpu.run();
+		}
+		// System.out.println("não está executando!");
 	}
 
 	public void carga(Word[] p, Word[] m, ArrayList<Integer> tabPaginas) {
 
-		int inicio, fim, j = 0;
+		int inicio, fim, i, j = 0;
 		// pra cada pagina da lista
 		for (Integer pag : tabPaginas) {
 			// pega o inicio e o fim
@@ -731,7 +770,7 @@ public class Sistema_1b {
 			fim = fimPag(pag);
 			// percorre as posiçoes de memoria da pagina setando as instruçoes do programa
 			// (referentes àquela pagina)
-			for (int i = inicio; i <= fim && j < p.length; i++, j++) {
+			for (i = inicio; i <= fim && j < p.length; i++, j++) {
 				m[i].opc = p[j].opc;
 				m[i].r1 = p[j].r1;
 				m[i].r2 = p[j].r2;
@@ -1173,6 +1212,7 @@ public class Sistema_1b {
 						if (s.listaAptos.get(i).id == ppid) {
 							// executa
 							s.rodando = s.listaAptos.get(i);
+							System.out.println(s.rodando.toString());
 							s.executa();
 						}
 
