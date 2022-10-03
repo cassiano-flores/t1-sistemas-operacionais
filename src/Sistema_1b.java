@@ -646,6 +646,35 @@ public class Sistema_1b {
 					System.out.println(vm.mem.m[endereco].p);
 					break;
 
+				case 3:// shmalloc
+					int frame = GM.alocaUm();
+					// se não tiver frames disponiveis
+					if (frame == -1) {
+						// coloca -1 em reg[9]
+						vm.cpu.reg[9] = frame;
+						return;
+					}
+
+					// adiciona a pagina no processo rodando
+					rodando.tabPaginas.add(frame);
+					// pega a chave de reg[9]
+					int chave = vm.cpu.reg[9];
+
+					// adiciona o par chave-frame na estrutura compartilhada
+					pagsComp.put(chave, frame);
+
+					break;
+
+				case 4:// shmref
+					// pega a chave em reg[9]
+					int key = vm.cpu.reg[9];
+					Integer pag = pagsComp.get(key);
+					if (pag != null) {
+						rodando.tabPaginas.add(pag);
+					}
+
+					break;
+
 				default:
 					System.out.println("Chamada inválida!");
 					break;
@@ -669,7 +698,7 @@ public class Sistema_1b {
 		return (frame + 1) * tamPg - 1;
 	}
 
-	// endereço logico e partição
+	// endereço logico e paginas
 	public int traduzMem(int endLog, int[] paginas) {
 		int pag = endLog / tamPg;
 		int offset = endLog % tamPg;
@@ -771,6 +800,8 @@ public class Sistema_1b {
 	int tamMem;
 	int tamPg;
 
+	public HashMap<Integer, Integer> pagsComp;
+
 	public Sistema_1b() { // a VM com tratamento de interrupções
 		tamMem = 1024;
 		tamPg = 8;
@@ -784,6 +815,7 @@ public class Sistema_1b {
 		gerenteMem = new GM();
 		gerentePro = new GP();
 		pcbclasse = new PCB();
+		pagsComp = new HashMap<>();
 
 		gerenteMem.init(tamMem, tamPg);
 	}
@@ -854,6 +886,25 @@ public class Sistema_1b {
 				frame[pag] = true;
 			}
 
+		}
+
+		public static int alocaUm() {
+			int result = -1;
+
+			// percorre o array
+			for (int i = 0; i < frame.length; i++) {
+				// se um frame estiver livre
+				if (frame[i]) {
+					// salva a pagina
+					result = i;
+					// marca como usando
+					frame[i] = false;
+					// retorna
+					return result;
+				}
+			}
+
+			return result;
 		}
 
 	}
@@ -1139,7 +1190,7 @@ public class Sistema_1b {
 					break;
 
 				case 8:
-				System.out.println();
+					System.out.println();
 					if (s.listaAptos.isEmpty()) {
 						System.out.println("Nenhum Processo Criado");
 					}
