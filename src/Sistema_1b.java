@@ -196,9 +196,11 @@ public class Sistema_1b {
 		public void run() { // execucao da CPU supoe que o contexto da CPU, vide acima, esta devidamente
 							// setado
 							int temp;
+							int n =0;
 			while (true) { // ciclo de instrucoes. acaba cfe instrucao, veja cada caso.
 				// --------------------------------------------------------------------------------------------------
 				// FETCH
+				System.out.println("fetch " + n++ + " pc: " + pc);
 				if (legal(pc)) { // pc valido
 					ir = m[pc]; // <<<<<<<<<<<< busca posicao da memoria apontada por pc, guarda em ir
 					if (debug) {
@@ -325,6 +327,7 @@ public class Sistema_1b {
 							}
 							reg[ir.r1] = reg[ir.r1] - reg[ir.r2];
 							testOverflow(reg[ir.r1]);
+							System.out.println("fim sub");
 							pc++;
 							break;
 
@@ -359,13 +362,16 @@ public class Sistema_1b {
 						// Instrucoes JUMP
 						case JMP: // PC <- k
 							// testa se k é endereço de memória válido
+							System.out.println("inicio jump");
 							if (!legal(ir.p)) {
 								break;
 							}
-							temp = traduzMem(ir.p);
+							/* temp = traduzMem(ir.p);
 							if(legal(temp)){
 								pc = temp;
-							} 
+							}  */
+
+							pc = ir.p;
 							break;
 
 						case JMPIG: // If Rc > 0 Then PC ← Rs Else PC ← PC +1
@@ -1255,7 +1261,7 @@ public class Sistema_1b {
 		// s.loadAndExec(progs.fatorialTRAP); // saida
 		// s.loadAndExec(progs.fibonacciTRAP); // entrada
 		// s.loadAndExec(progs.PC); // bubble sort
-
+		n.close();
 	}
 
 	// -------------------------------------------------------------------------------------------------------
