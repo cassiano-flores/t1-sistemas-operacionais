@@ -384,7 +384,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] > 0) {
-								pc = traduzMem(reg[ir.r1]);
+								pc = reg[ir.r1];
 							} else {
 								pc++;
 							}
@@ -400,7 +400,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] > 0) {
-								pc = traduzMem(ir.p);
+								pc = ir.p;
 							} else {
 								pc++;
 							}
@@ -416,7 +416,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] < 0) {
-								pc = traduzMem(ir.p);
+								pc = ir.p;
 							} else {
 								pc++;
 							}
@@ -432,7 +432,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] == 0) {
-								pc = traduzMem(ir.p);
+								pc = ir.p;
 							} else {
 								pc++;
 							}
@@ -447,7 +447,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] < 0) {
-								pc = traduzMem(reg[ir.r1]);
+								pc = reg[ir.r1];
 							} else {
 								pc++;
 							}
@@ -462,7 +462,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] == 0) {
-								pc = traduzMem(reg[ir.r1]);
+								pc = reg[ir.r1];
 							} else {
 								pc++;
 							}
@@ -473,7 +473,7 @@ public class Sistema_1b {
 							if (!legal(ir.p)) {
 								break;
 							}
-							pc = traduzMem(m[ir.p].p);
+							pc = m[ir.p].p;
 							break;
 
 						case JMPIGM: // If RC > 0 then PC <- [A] else PC++
@@ -486,7 +486,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] > 0) {
-								pc = traduzMem(m[ir.p].p);
+								pc = m[ir.p].p;
 							} else {
 								pc++;
 							}
@@ -502,7 +502,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] < 0) {
-								pc = traduzMem(m[ir.p].p);
+								pc = m[ir.p].p;
 							} else {
 								pc++;
 							}
@@ -517,7 +517,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r2] == 0) {
-								pc = traduzMem(m[ir.p].p);
+								pc = m[ir.p].p;
 							} else {
 								pc++;
 							}
@@ -532,7 +532,7 @@ public class Sistema_1b {
 								break;
 							}
 							if (reg[ir.r1] > reg[ir.r2]) {
-								pc = traduzMem(ir.p);
+								pc = ir.p;
 							} else {
 								pc++;
 							}
@@ -742,7 +742,7 @@ public class Sistema_1b {
 	public int traduzMem(int endLog) {
 		int pag = endLog / tamPg;
 		int offset = endLog % tamPg;
-
+		//System.out.println(pag);
 		// endereco fisico é o inicio da página + offset
 		// int endFis = iniPag(paginas[pag]);
 		int endFis = iniPag(rodando.tabPaginas.get(pag));
