@@ -133,15 +133,37 @@ public class Sistema_1b {
 		// teste de memória (in)válida
 		private boolean legal(int e) { // todo acesso a memoria tem que ser verificado
 			// e fora dos limites permitidos de memória
-			if (e < this.base || e >= this.limite) {
-				irpt = Interrupts.intEnderecoInvalido;
-				return false;
-			}
-			/* // se o endereço estiver fora dos limites da partição
-			if (e < iniPart(rodando.particao) || e > fimPart(rodando.particao)) {
+			/* if (e < this.base || e >= this.limite) {
 				irpt = Interrupts.intEnderecoInvalido;
 				return false;
 			} */
+
+			
+			int ini, fim, endfis, teste = 0;
+			int qtd = rodando.tabPaginas.size();
+			//percorre todos os frames
+			for (int i = 0; i < qtd; i++) {
+				//obtem os limites do frame
+				ini = iniPag(rodando.tabPaginas.get(i));
+				fim = fimPag(rodando.tabPaginas.get(i));
+				//obtem o endereco fisico
+				endfis = traduzMem(e);
+				//se o endereco fisico está fora do frame atual
+				if (endfis < ini || endfis > fim) {
+					teste = -1;
+				}else{
+					//se o endereco fisico estiver dentro de algum frame
+					//att variavel
+					teste = 1;
+					//sai do for
+					break;
+				}
+			}
+			//se o endereco fisico esta fora de todos os frames
+			if (teste == -1) {
+				irpt = Interrupts.intEnderecoInvalido;
+				return false;
+			}
 			return true;
 		}
 
@@ -173,9 +195,13 @@ public class Sistema_1b {
 
 		public void run() { // execucao da CPU supoe que o contexto da CPU, vide acima, esta devidamente
 							// setado
+							int temp;
+							int n =0;
 			while (true) { // ciclo de instrucoes. acaba cfe instrucao, veja cada caso.
 				// --------------------------------------------------------------------------------------------------
 				// FETCH
+				//System.out.println("fetch " + n++ + " pc: " + pc);
+				//pc = traduzMem(pc);
 				if (legal(pc)) { // pc valido
 					ir = m[pc]; // <<<<<<<<<<<< busca posicao da memoria apontada por pc, guarda em ir
 					if (debug) {
@@ -302,6 +328,7 @@ public class Sistema_1b {
 							}
 							reg[ir.r1] = reg[ir.r1] - reg[ir.r2];
 							testOverflow(reg[ir.r1]);
+							//System.out.println("fim sub");
 							pc++;
 							break;
 
@@ -326,14 +353,25 @@ public class Sistema_1b {
 							reg[ir.r1] = reg[ir.r1] * reg[ir.r2];
 							testOverflow(reg[ir.r1]);
 							pc++;
-							break;
+						break;
+
+
+
+
+
 
 						// Instrucoes JUMP
 						case JMP: // PC <- k
 							// testa se k é endereço de memória válido
+							//System.out.println("inicio jump");
 							if (!legal(ir.p)) {
 								break;
 							}
+							/* temp = traduzMem(ir.p);
+							if(legal(temp)){
+								pc = temp;
+							}  */
+
 							pc = ir.p;
 							break;
 
@@ -522,6 +560,10 @@ public class Sistema_1b {
 							break;
 					}
 				}
+
+				// atualiza PCB rodando
+				//rodando.pc = this.pc;
+
 				// --------------------------------------------------------------------------------------------------
 				// VERIFICA INTERRUPÇÃO !!! - TERCEIRA FASE DO CICLO DE INSTRUÇÕES
 				if (!(irpt == Interrupts.noInterrupt)) { // existe interrupção
@@ -644,17 +686,34 @@ public class Sistema_1b {
 					System.out.println(vm.mem.m[endereco].p);
 					break;
 
-				// shmalloc
-				case 3:
-					for(PCB pcb : listaAptos){
-
-						if(pcb.id == vm.cpu.reg[9]){
-							int[] result = GM.aloca(pcb.tamanho);
-								if(result[0] == -1)
-									vm.cpu.reg[9] = -1;
-								
-						}
+				case 3:// shmalloc
+					int frame = GM.alocaUm();
+					// se não tiver frames disponiveis
+					if (frame == -1) {
+						// coloca -1 em reg[9]
+						vm.cpu.reg[9] = frame;
+						return;
 					}
+
+					// adiciona a pagina no processo rodando
+					rodando.tabPaginas.add(frame);
+					// pega a chave de reg[9]
+					int chave = vm.cpu.reg[9];
+
+					// adiciona o par chave-frame na estrutura compartilhada
+					pagsComp.put(chave, frame);
+
+					break;
+
+				case 4:// shmref
+						// pega a chave em reg[9]
+					int key = vm.cpu.reg[9];
+					Integer pag = pagsComp.get(key);
+					if (pag != null) {
+						rodando.tabPaginas.add(pag);
+					}
+
+					break;
 
 				default:
 					System.out.println("Chamada inválida!");
@@ -668,24 +727,25 @@ public class Sistema_1b {
 	// ------------------ load é invocado a partir de requisição do usuário
 
 	// obtém o endereço de memória inicial de um frame
-	private int iniPart(int frame) {
+	private int iniPag(int frame) {
 		// frame * tamFrame tamFram==tamPg
 		return frame * tamPg;
 	}
 
 	// obtém o endereço de memória final de um frame
-	private int fimPart(int frame) {
+	private int fimPag(int frame) {
 		// obtém o endereço inicial do frame seguinte e subtrai 1
 		return (frame + 1) * tamPg - 1;
 	}
 
-	// endereço logico e partição
-	public int traduzMem(int endLog, int[] paginas) {
+	// endereço logico e paginas
+	public int traduzMem(int endLog) {
 		int pag = endLog / tamPg;
 		int offset = endLog % tamPg;
-
+		//System.out.println(pag);
 		// endereco fisico é o inicio da página + offset
-		int endFis = iniPart(paginas[pag]);
+		// int endFis = iniPag(paginas[pag]);
+		int endFis = iniPag(rodando.tabPaginas.get(pag));
 		endFis += offset;
 
 		return endFis;
@@ -693,24 +753,31 @@ public class Sistema_1b {
 	}
 
 	public void executa() {
-		/* int ini = iniPart(rodando.particao);
-		int fim = fimPart(rodando.particao);
-		vm.cpu.setContext(ini, fim, rodando.pc); // seta estado da cpu ]
-		vm.cpu.run(); // cpu roda programa ate parar */
-		System.out.println("não está executando!");
+		int ini, fim, pag;
+		int qtd = rodando.tabPaginas.size();
+		for (int i = 0; i < qtd; i++) {
+			// pega a pagina
+			pag = rodando.tabPaginas.get(i);
+			// pega os limites da pagina
+			ini = iniPag(pag);
+			fim = fimPag(pag);
+			vm.cpu.setContext(ini, fim, rodando.pc);
+			vm.cpu.run();
+		}
+		// System.out.println("não está executando!");
 	}
 
 	public void carga(Word[] p, Word[] m, ArrayList<Integer> tabPaginas) {
 
-		int inicio, fim, j = 0;
+		int inicio, fim, i, j = 0;
 		// pra cada pagina da lista
 		for (Integer pag : tabPaginas) {
 			// pega o inicio e o fim
-			inicio = iniPart(pag);
-			fim = fimPart(pag);
+			inicio = iniPag(pag);
+			fim = fimPag(pag);
 			// percorre as posiçoes de memoria da pagina setando as instruçoes do programa
 			// (referentes àquela pagina)
-			for (int i = inicio; i <= fim && j < p.length; i++, j++) {
+			for (i = inicio; i <= fim && j < p.length; i++, j++) {
 				m[i].opc = p[j].opc;
 				m[i].r1 = p[j].r1;
 				m[i].r2 = p[j].r2;
@@ -724,11 +791,14 @@ public class Sistema_1b {
 		carga(p, vm.m, tabPaginas);
 	}
 
-	public void dumpParticao(int part) {
-		int inicio = iniPart(part);
-		int fim = fimPart(part);
-
-		vm.mem.dump(inicio, fim);
+	public void dumpPags(ArrayList<Integer> tabPaginas) {
+		int qtd = tabPaginas.size();
+		int inicio, fim;
+		for (int i = 0; i < qtd; i++) {
+			inicio = iniPag(tabPaginas.get(i));
+			fim = fimPag(tabPaginas.get(i)) + 1;
+			vm.mem.dump(inicio, fim);
+		}
 	}
 
 	private void loadProgram(Word[] p, Word[] m) {
@@ -776,6 +846,8 @@ public class Sistema_1b {
 	int tamMem;
 	int tamPg;
 
+	public HashMap<Integer, Integer> pagsComp;
+
 	public Sistema_1b() { // a VM com tratamento de interrupções
 		tamMem = 1024;
 		tamPg = 8;
@@ -789,6 +861,7 @@ public class Sistema_1b {
 		gerenteMem = new GM();
 		gerentePro = new GP();
 		pcbclasse = new PCB();
+		pagsComp = new HashMap<>();
 
 		gerenteMem.init(tamMem, tamPg);
 	}
@@ -861,6 +934,25 @@ public class Sistema_1b {
 
 		}
 
+		public static int alocaUm() {
+			int result = -1;
+
+			// percorre o array
+			for (int i = 0; i < frame.length; i++) {
+				// se um frame estiver livre
+				if (frame[i]) {
+					// salva a pagina
+					result = i;
+					// marca como usando
+					frame[i] = false;
+					// retorna
+					return result;
+				}
+			}
+
+			return result;
+		}
+
 	}
 
 	/**
@@ -873,7 +965,7 @@ public class Sistema_1b {
 
 		boolean criaProcesso(Word[] prog) {
 			int tamProg = prog.length;
-			System.out.println(tamProg);// controle
+			//System.out.println(tamProg);// controle
 			PCB pcb;
 			int[] result = GM.aloca(tamProg);
 
@@ -909,6 +1001,9 @@ public class Sistema_1b {
 					GM.desaloca(pcb.tabPaginas);
 					// remove das listas
 					listaAptos.remove(pcb);
+					if (rodando != null && rodando.id == pid) {
+						rodando = null;
+					}
 					// desaloca o pcb
 					pcb = null;
 					// sai do for
@@ -948,7 +1043,7 @@ public class Sistema_1b {
 		@Override
 		public String toString() {
 			String x = "PCB [id=" + id + ", estadoAtual=" + estadoAtual + ", pc=" + pc
-					+ ", tamanho=" + tamanho + "\n";
+					+ ", tamanho=" + tamanho + "]\n";
 
 			String y = "";
 
@@ -981,6 +1076,7 @@ public class Sistema_1b {
 			System.out.println("5 - Executar Processo");
 			System.out.println("6 - TraceOn");
 			System.out.println("7 - TraceOff");
+			System.out.println("8 - Listar Processos");
 			System.out.println("0 - Exit");
 
 			key = n.nextInt();
@@ -1085,8 +1181,8 @@ public class Sistema_1b {
 							String aux = s.listaAptos.get(i).toString();
 							System.out.println(aux);
 							System.out.println();
-							//s.dumpParticao(s.listaAptos.get(i).particao);
-							System.out.println("não está printando!");
+							s.dumpPags(s.listaAptos.get(i).tabPaginas);
+							// System.out.println("não está printando!");
 						}
 
 					}
@@ -1123,6 +1219,7 @@ public class Sistema_1b {
 						if (s.listaAptos.get(i).id == ppid) {
 							// executa
 							s.rodando = s.listaAptos.get(i);
+							System.out.println(s.rodando.toString());
 							s.executa();
 						}
 
@@ -1137,6 +1234,16 @@ public class Sistema_1b {
 				case 7:// trace off
 					s.vm.setDebug(false);
 					System.out.println("Trace desativado");
+					break;
+
+				case 8:
+					System.out.println();
+					if (s.listaAptos.isEmpty()) {
+						System.out.println("Nenhum Processo Criado");
+					}
+					for (PCB prog : s.listaAptos) {
+						System.out.println(prog.toString());
+					}
 					break;
 
 				case 0:// sair
@@ -1155,7 +1262,7 @@ public class Sistema_1b {
 		// s.loadAndExec(progs.fatorialTRAP); // saida
 		// s.loadAndExec(progs.fibonacciTRAP); // entrada
 		// s.loadAndExec(progs.PC); // bubble sort
-
+		n.close();
 	}
 
 	// -------------------------------------------------------------------------------------------------------
