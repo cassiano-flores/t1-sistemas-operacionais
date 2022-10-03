@@ -137,8 +137,8 @@ public class Sistema_1a {
 				irpt = Interrupts.intEnderecoInvalido;
 				return false;
 			}
-			//se o endereço estiver fora dos limites da partição
-			if (e< iniPart(rodando.particao)|| e > fimPart(rodando.particao)) {
+			// se o endereço estiver fora dos limites da partição
+			if (e < iniPart(rodando.particao) || e > fimPart(rodando.particao)) {
 				irpt = Interrupts.intEnderecoInvalido;
 				return false;
 			}
@@ -682,7 +682,7 @@ public class Sistema_1a {
 	public void executa() {
 		int ini = iniPart(rodando.particao);
 		int fim = fimPart(rodando.particao);
-		vm.cpu.setContext(ini,fim,rodando.pc); // seta estado da cpu ]
+		vm.cpu.setContext(ini, fim, rodando.pc); // seta estado da cpu ]
 		vm.cpu.run(); // cpu roda programa ate parar
 	}
 
@@ -706,7 +706,7 @@ public class Sistema_1a {
 
 	public void dumpParticao(int part) {
 		int inicio = iniPart(part);
-		int fim = fimPart(part);
+		int fim = fimPart(part) + 1;
 
 		vm.mem.dump(inicio, fim);
 	}
@@ -1056,7 +1056,7 @@ public class Sistema_1a {
 
 					}
 
-					//System.out.println("Processo não existe!");
+					// System.out.println("Processo não existe!");
 
 					break;
 
@@ -1086,7 +1086,7 @@ public class Sistema_1a {
 
 					for (int i = 0; i < s.listaAptos.size(); i++) {
 						if (s.listaAptos.get(i).id == ppid) {
-							//executa
+							// executa
 							s.rodando = s.listaAptos.get(i);
 							s.executa();
 							break;

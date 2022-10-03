@@ -137,11 +137,13 @@ public class Sistema_1b {
 				irpt = Interrupts.intEnderecoInvalido;
 				return false;
 			}
-			/* // se o endereço estiver fora dos limites da partição
-			if (e < iniPart(rodando.particao) || e > fimPart(rodando.particao)) {
-				irpt = Interrupts.intEnderecoInvalido;
-				return false;
-			} */
+			/*
+			 * // se o endereço estiver fora dos limites da partição
+			 * if (e < iniPart(rodando.particao) || e > fimPart(rodando.particao)) {
+			 * irpt = Interrupts.intEnderecoInvalido;
+			 * return false;
+			 * }
+			 */
 			return true;
 		}
 
@@ -656,13 +658,13 @@ public class Sistema_1b {
 	// ------------------ load é invocado a partir de requisição do usuário
 
 	// obtém o endereço de memória inicial de um frame
-	private int iniPart(int frame) {
+	private int iniPag(int frame) {
 		// frame * tamFrame tamFram==tamPg
 		return frame * tamPg;
 	}
 
 	// obtém o endereço de memória final de um frame
-	private int fimPart(int frame) {
+	private int fimPag(int frame) {
 		// obtém o endereço inicial do frame seguinte e subtrai 1
 		return (frame + 1) * tamPg - 1;
 	}
@@ -673,7 +675,7 @@ public class Sistema_1b {
 		int offset = endLog % tamPg;
 
 		// endereco fisico é o inicio da página + offset
-		int endFis = iniPart(paginas[pag]);
+		int endFis = iniPag(paginas[pag]);
 		endFis += offset;
 
 		return endFis;
@@ -681,10 +683,12 @@ public class Sistema_1b {
 	}
 
 	public void executa() {
-		/* int ini = iniPart(rodando.particao);
-		int fim = fimPart(rodando.particao);
-		vm.cpu.setContext(ini, fim, rodando.pc); // seta estado da cpu ]
-		vm.cpu.run(); // cpu roda programa ate parar */
+		/*
+		 * int ini = iniPart(rodando.particao);
+		 * int fim = fimPart(rodando.particao);
+		 * vm.cpu.setContext(ini, fim, rodando.pc); // seta estado da cpu ]
+		 * vm.cpu.run(); // cpu roda programa ate parar
+		 */
 		System.out.println("não está executando!");
 	}
 
@@ -694,8 +698,8 @@ public class Sistema_1b {
 		// pra cada pagina da lista
 		for (Integer pag : tabPaginas) {
 			// pega o inicio e o fim
-			inicio = iniPart(pag);
-			fim = fimPart(pag);
+			inicio = iniPag(pag);
+			fim = fimPag(pag);
 			// percorre as posiçoes de memoria da pagina setando as instruçoes do programa
 			// (referentes àquela pagina)
 			for (int i = inicio; i <= fim && j < p.length; i++, j++) {
@@ -712,11 +716,14 @@ public class Sistema_1b {
 		carga(p, vm.m, tabPaginas);
 	}
 
-	public void dumpParticao(int part) {
-		int inicio = iniPart(part);
-		int fim = fimPart(part);
-
-		vm.mem.dump(inicio, fim);
+	public void dumpPags(ArrayList<Integer> tabPaginas) {
+		int qtd = tabPaginas.size();
+		int inicio, fim;
+		for (int i = 0; i < qtd; i++) {
+			inicio = iniPag(tabPaginas.get(i));
+			fim = fimPag(tabPaginas.get(i)) + 1;
+			vm.mem.dump(inicio, fim);
+		}
 	}
 
 	private void loadProgram(Word[] p, Word[] m) {
@@ -897,6 +904,9 @@ public class Sistema_1b {
 					GM.desaloca(pcb.tabPaginas);
 					// remove das listas
 					listaAptos.remove(pcb);
+					if (rodando != null && rodando.id == pid) {
+						rodando = null;
+					}
 					// desaloca o pcb
 					pcb = null;
 					// sai do for
@@ -969,6 +979,7 @@ public class Sistema_1b {
 			System.out.println("5 - Executar Processo");
 			System.out.println("6 - TraceOn");
 			System.out.println("7 - TraceOff");
+			System.out.println("8 - Listar Processos");
 			System.out.println("0 - Exit");
 
 			key = n.nextInt();
@@ -1073,8 +1084,8 @@ public class Sistema_1b {
 							String aux = s.listaAptos.get(i).toString();
 							System.out.println(aux);
 							System.out.println();
-							//s.dumpParticao(s.listaAptos.get(i).particao);
-							System.out.println("não está printando!");
+							s.dumpPags(s.listaAptos.get(i).tabPaginas);
+							// System.out.println("não está printando!");
 						}
 
 					}
@@ -1125,6 +1136,16 @@ public class Sistema_1b {
 				case 7:// trace off
 					s.vm.setDebug(false);
 					System.out.println("Trace desativado");
+					break;
+
+				case 8:
+				System.out.println();
+					if (s.listaAptos.isEmpty()) {
+						System.out.println("Nenhum Processo Criado");
+					}
+					for (PCB prog : s.listaAptos) {
+						System.out.println(prog.toString());
+					}
 					break;
 
 				case 0:// sair
