@@ -848,7 +848,7 @@ public class Sistema_1a {
 
 		boolean criaProcesso(Word[] prog) {
 			int tamProg = prog.length;
-			System.out.println(tamProg);// controle
+			//System.out.println(tamProg);// controle
 			PCB pcb;
 			// se o programa cabe na partição
 			if (GM.tamPart > tamProg) {
@@ -860,11 +860,11 @@ public class Sistema_1a {
 				}
 				// se der, cria um PCB do programa
 				pcb = new PCB(result[1], 'c', tamProg, id);
-				System.out.println("id pcb: " + pcb.id);
+				//System.out.println("id pcb: " + pcb.id);
 				// incrementa o id geral
-				System.out.println("id antes: " + id);
+				//System.out.println("id antes: " + id);
 				id++;
-				System.out.println("id dps: " + id);
+				//System.out.println("id dps: " + id);
 				carga(prog, result[1]);
 				// adiciona processo na lista de prontos
 				listaAptos.add(pcb);
@@ -1122,6 +1122,7 @@ public class Sistema_1a {
 		// s.loadAndExec(progs.fibonacciTRAP); // entrada
 		// s.loadAndExec(progs.PC); // bubble sort
 
+		n.close();
 	}
 
 	// -------------------------------------------------------------------------------------------------------
