@@ -137,11 +137,11 @@ public class Sistema_1b {
 				irpt = Interrupts.intEnderecoInvalido;
 				return false;
 			}
-			/* // se o endereço estiver fora dos limites da partição
+			// se o endereço estiver fora dos limites da partição
 			if (e < iniPart(rodando.particao) || e > fimPart(rodando.particao)) {
 				irpt = Interrupts.intEnderecoInvalido;
 				return false;
-			} */
+			}
 			return true;
 		}
 
@@ -644,72 +644,88 @@ public class Sistema_1b {
 					System.out.println(vm.mem.m[endereco].p);
 					break;
 
+				// shmalloc
+				case 3:
+					for(PCB pcb : listaAptos){
+						// nao entendi o que seria essa chave no registrador 9
+						// mas entendi como se fosse o id do processo que devemos alocar mais uma pagina
+						if(pcb.id == vm.cpu.reg[9]){
+							int[] result = GM.aloca(pcb.tamanho);
+							if(result[0] == -1){
+								vm.cpu.reg[9] = -1;
+							}
+							else{
+								// creio que o pcb deveria ter quais paginas o processo esta
+								// a partir disso botariamos que este processo agora tem mais uma pagina
+								// neste momento o processo deveria endereçar seu endereço MAIS o tamanho da pagina
+							}
+						}
+					}
+
+				// shmref
+
+
+
 				default:
 					System.out.println("Chamada inválida!");
 					break;
 			}
+
 		}
 	}
+
 
 	// ------------------ U T I L I T A R I O S D O S I S T E M A
 	// -----------------------------------------
 	// ------------------ load é invocado a partir de requisição do usuário
 
-	// obtém o endereço de memória inicial de um frame
+	// obtém o endereço de memória inicial de uma partição
 	private int iniPart(int frame) {
-		// frame * tamFrame tamFram==tamPg
+		//frame * tamFrame			tamFram==tamPg
 		return frame * tamPg;
 	}
 
-	// obtém o endereço de memória final de um frame
-	private int fimPart(int frame) {
-		// obtém o endereço inicial do frame seguinte e subtrai 1
-		return (frame + 1) * tamPg - 1;
+	// obtém o endereço de memória final de uma partição
+	private int fimPart(int part) {
+		// obtém o endereço inicial da partição seguinte e subtrai 1
+		return (part + 1) * tamPg - 1;
 	}
 
 	// endereço logico e partição
-	public int traduzMem(int endLog, int[] paginas) {
-		int pag = endLog / tamPg;
-		int offset = endLog % tamPg;
-
-		// endereco fisico é o inicio da página + offset
-		int endFis = iniPart(paginas[pag]);
-		endFis += offset;
-
-		return endFis;
+	public int traduzMem(int endLog, int part) {
+		// se o endereço lógico for inválido
+		if (endLog < 0 || endLog > tamPg) {
+			// retorna valor inválido
+			return -1;
+		}
+		// obtém a pos inicial da particao e soma o endereço lógico
+		return iniPart(part) + endLog;
 
 	}
 
 	public void executa() {
-		/* int ini = iniPart(rodando.particao);
+		int ini = iniPart(rodando.particao);
 		int fim = fimPart(rodando.particao);
 		vm.cpu.setContext(ini, fim, rodando.pc); // seta estado da cpu ]
-		vm.cpu.run(); // cpu roda programa ate parar */
-		System.out.println("não está executando!");
+		vm.cpu.run(); // cpu roda programa ate parar
 	}
 
-	public void carga(Word[] p, Word[] m, ArrayList<Integer> tabPaginas) {
+	public void carga(Word[] p, Word[] m, int part) {
+		int inicio = iniPart(part);
+		int fim = fimPart(part);
 
-		int inicio, fim, j = 0;
-		// pra cada pagina da lista
-		for (Integer pag : tabPaginas) {
-			// pega o inicio e o fim
-			inicio = iniPart(pag);
-			fim = fimPart(pag);
-			// percorre as posiçoes de memoria da pagina setando as instruçoes do programa
-			// (referentes àquela pagina)
-			for (int i = inicio; i <= fim && j < p.length; i++, j++) {
-				m[i].opc = p[j].opc;
-				m[i].r1 = p[j].r1;
-				m[i].r2 = p[j].r2;
-				m[i].p = p[j].p;
-			}
+		for (int i = inicio, j = 0; i < fim && j < p.length; i++, j++) {
+			m[i].opc = p[j].opc;
+			m[i].r1 = p[j].r1;
+			m[i].r2 = p[j].r2;
+			m[i].p = p[j].p;
 
 		}
+
 	}
 
-	public void carga(Word[] p, ArrayList<Integer> tabPaginas) {
-		carga(p, vm.m, tabPaginas);
+	public void carga(Word[] p, int part) {
+		carga(p, vm.m, part);
 	}
 
 	public void dumpParticao(int part) {
@@ -766,7 +782,7 @@ public class Sistema_1b {
 
 	public Sistema_1b() { // a VM com tratamento de interrupções
 		tamMem = 1024;
-		tamPg = 8;
+		tamPg = 12;
 		ih = new InterruptHandling();
 		sysCall = new SysCallHandling();
 		vm = new VM(ih, sysCall, tamMem);
@@ -806,15 +822,15 @@ public class Sistema_1b {
 		}
 
 		public static int[] aloca(int tamProg) {
-			// define a qtd de paginas pro programa
+			//define a qtd de paginas pro programa
 			int nroPaginas = tamProg / tamPg;
 			if (tamProg % tamPg != 0) {
 				nroPaginas += 1;
 			}
-
+	
 			int[] tabPag = new int[nroPaginas];
 
-			// marca todas posicoes como inválidas
+			//marca todas posicoes como inválidas
 			for (int i = 0; i < tabPag.length; i++) {
 				tabPag[i] = -1;
 			}
@@ -831,22 +847,23 @@ public class Sistema_1b {
 					j++;
 				}
 			}
-			// se não alocou alguma página
-			if (tabPag[nroPaginas - 1] == -1) {
-				// retorna uma falha
+			//se não alocou alguma página
+			if (tabPag[nroPaginas-1] == -1) {
+				//retorna uma falha
 				int[] falha = { -1 };
 				return falha;
 			}
-			// se deu tudo certo, retorna o resultado
+			//se deu tudo certo, retorna o resultado
 			return tabPag;
 		}
 
-		public static void desaloca(ArrayList<Integer> tabPaginas) {
-			for (Integer pag : tabPaginas) {
-				// marca como livre
-				frame[pag] = true;
-			}
+		public static void desaloca(int[] paginas) {
 
+			for(int i = 0; i< paginas.length; i++){
+				// marca como livre
+				frame[paginas[i]] = true;
+			}
+			
 		}
 
 	}
@@ -857,44 +874,43 @@ public class Sistema_1b {
 	public class GP {
 		int id = 0;
 		int invalido = -1;
-		ArrayList<Integer> tabPaginas;
 
 		boolean criaProcesso(Word[] prog) {
 			int tamProg = prog.length;
 			System.out.println(tamProg);// controle
 			PCB pcb;
-			int[] result = GM.aloca(tamProg);
-
-			// se não deu pra alocar tudo
-			if (result[0] == invalido) {
-				return false;
+			// se o programa cabe na partição
+			if (GM.tamPg > tamProg) {
+				// pede uma partição
+				int[] result = GM.aloca(tamProg);
+				// se não dá pra alocar
+				if (result[0] == invalido) {
+					return false;
+				}
+				// se der, cria um PCB do programa
+				pcb = new PCB(result[0], 'c', tamProg, id);
+				System.out.println("id pcb: " + pcb.id);
+				// incrementa o id geral
+				System.out.println("id antes: " + id);
+				System.out.println(pcb.particao);
+				id++;
+				System.out.println("id dps: " + id);
+				carga(prog, result[0]);
+				// adiciona processo na lista de prontos
+				listaAptos.add(pcb);
+				return true;
 			}
-
-			tabPaginas = new ArrayList<>();
-
-			for (int i = 0; i < result.length; i++) {
-				// "converte" de array pra arraylist
-				tabPaginas.add(i, result[i]);
-			}
-
-			// cria um PCB do programa
-			pcb = new PCB(tabPaginas, 'c', tamProg, id);
-			// incrementa o id geral
-			id++;
-
-			carga(prog, tabPaginas);
-
-			listaAptos.add(pcb);
-
-			return true;
+			return false;
 		}
 
 		void desalocaProcesso(int pid) {
 			for (PCB pcb : listaAptos) {
 				// se o pcb da lista for o mesmo do parâmetro
 				if (pcb.id == pid) {
-					// desaloca paginas
-					GM.desaloca(pcb.tabPaginas);
+					// desaloca a partição
+					int pagina[] = new int[1];
+					pagina[0] = pcb.particao;
+					GM.desaloca(pagina);
 					// remove das listas
 					listaAptos.remove(pcb);
 					// desaloca o pcb
@@ -912,17 +928,17 @@ public class Sistema_1b {
 	 */
 	public class PCB {
 
+		int particao;
 		char estadoAtual;
 		int tamanho;
 		int id;
 		int pc;
-		ArrayList<Integer> tabPaginas;
 
 		public PCB() {
 		}
 
-		public PCB(ArrayList<Integer> tabPaginas, char estadoAtual, int tamanho, int id) {
-			this.tabPaginas = tabPaginas;
+		public PCB(int particao, char estadoAtual, int tamanho, int id) {
+			this.particao = particao;
 			this.estadoAtual = estadoAtual;
 			this.tamanho = tamanho;
 			this.id = id;
@@ -935,15 +951,8 @@ public class Sistema_1b {
 
 		@Override
 		public String toString() {
-			String x = "PCB [id=" + id + ", estadoAtual=" + estadoAtual + ", pc=" + pc
-					+ ", tamanho=" + tamanho + "\n";
-
-			String y = "";
-
-			for (int i = 0; i < tabPaginas.size(); i++) {
-				y += "pag: " + tabPaginas.get(i).toString() + "\n";
-			}
-			return x + y;
+			return "PCB [id=" + id + ", particao=" + particao + ", estadoAtual=" + estadoAtual + ", pc=" + pc
+					+ ", tamanho=" + tamanho + "]";
 		}
 
 	}
@@ -1073,8 +1082,7 @@ public class Sistema_1b {
 							String aux = s.listaAptos.get(i).toString();
 							System.out.println(aux);
 							System.out.println();
-							//s.dumpParticao(s.listaAptos.get(i).particao);
-							System.out.println("não está printando!");
+							s.dumpParticao(s.listaAptos.get(i).particao);
 						}
 
 					}
