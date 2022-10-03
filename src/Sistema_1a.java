@@ -132,13 +132,15 @@ public class Sistema_1a {
 
 		// teste de memória (in)válida
 		private boolean legal(int e) { // todo acesso a memoria tem que ser verificado
-			// e fora dos limites permitidos de memória
-			if (e < this.base || e >= this.limite) {
-				irpt = Interrupts.intEnderecoInvalido;
-				return false;
-			}
+			//obtem os limites da particao
+			int ini, fim, endfis, part;
+			part = rodando.particao;
+			ini = iniPart(part);
+			fim = fimPart(part);
+
+			endfis = traduzMem(e, part);
 			// se o endereço estiver fora dos limites da partição
-			if (e < iniPart(rodando.particao) || e > fimPart(rodando.particao)) {
+			if (endfis < ini || endfis > fim) {
 				irpt = Interrupts.intEnderecoInvalido;
 				return false;
 			}
