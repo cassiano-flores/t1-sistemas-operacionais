@@ -133,10 +133,10 @@ public class Sistema_1b {
 		// teste de memória (in)válida
 		private boolean legal(int e) { // todo acesso a memoria tem que ser verificado
 			// e fora dos limites permitidos de memória
-			if (e < this.base || e >= this.limite) {
+			/* if (e < this.base || e >= this.limite) {
 				irpt = Interrupts.intEnderecoInvalido;
 				return false;
-			}
+			} */
 
 			
 			int ini, fim, endfis, teste = 0;
@@ -200,7 +200,8 @@ public class Sistema_1b {
 			while (true) { // ciclo de instrucoes. acaba cfe instrucao, veja cada caso.
 				// --------------------------------------------------------------------------------------------------
 				// FETCH
-				System.out.println("fetch " + n++ + " pc: " + pc);
+				//System.out.println("fetch " + n++ + " pc: " + pc);
+				//pc = traduzMem(pc);
 				if (legal(pc)) { // pc valido
 					ir = m[pc]; // <<<<<<<<<<<< busca posicao da memoria apontada por pc, guarda em ir
 					if (debug) {
@@ -327,7 +328,7 @@ public class Sistema_1b {
 							}
 							reg[ir.r1] = reg[ir.r1] - reg[ir.r2];
 							testOverflow(reg[ir.r1]);
-							System.out.println("fim sub");
+							//System.out.println("fim sub");
 							pc++;
 							break;
 
@@ -362,7 +363,7 @@ public class Sistema_1b {
 						// Instrucoes JUMP
 						case JMP: // PC <- k
 							// testa se k é endereço de memória válido
-							System.out.println("inicio jump");
+							//System.out.println("inicio jump");
 							if (!legal(ir.p)) {
 								break;
 							}
@@ -561,7 +562,7 @@ public class Sistema_1b {
 				}
 
 				// atualiza PCB rodando
-				rodando.pc = this.pc;
+				//rodando.pc = this.pc;
 
 				// --------------------------------------------------------------------------------------------------
 				// VERIFICA INTERRUPÇÃO !!! - TERCEIRA FASE DO CICLO DE INSTRUÇÕES
@@ -964,7 +965,7 @@ public class Sistema_1b {
 
 		boolean criaProcesso(Word[] prog) {
 			int tamProg = prog.length;
-			System.out.println(tamProg);// controle
+			//System.out.println(tamProg);// controle
 			PCB pcb;
 			int[] result = GM.aloca(tamProg);
 
@@ -1042,7 +1043,7 @@ public class Sistema_1b {
 		@Override
 		public String toString() {
 			String x = "PCB [id=" + id + ", estadoAtual=" + estadoAtual + ", pc=" + pc
-					+ ", tamanho=" + tamanho + "\n";
+					+ ", tamanho=" + tamanho + "]\n";
 
 			String y = "";
 
